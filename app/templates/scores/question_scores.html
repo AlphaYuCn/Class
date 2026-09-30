@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}录入得分 - {{ subject_label.get(q.subject, q.subject) }} {{ q.question_no }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-pencil-square"></i> 录入得分</h2>
+    <div class="text-muted small">
+      {{ exam.name }} · {{ subject_label.get(q.subject, q.subject) }} 第 {{ q.question_no }} 题 · 满分 {{ q.full_score|score1 }}
+    </div>
+  </div>
+  <a href="{{ url_for('scores.question_list', eid=exam.id) }}" class="btn btn-link">← 返回题目列表</a>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i> 留空表示该生未作答/不录入；输入超出 0~{{ q.full_score|score1 }} 范围的分数将被跳过。
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header"><i class="bi bi-people"></i> 全班学生 ({{ students|length }})</div>
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width:120px;">学号</th>
+              <th>姓名</th>
+              <th style="width:160px;">得分 (满分 {{ q.full_score|score1 }})</th>
+              <th style="width:100px;">得分率</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+              {% set score_val = score_map.get(s.id) %}
+              <tr>
+                <td>{{ s.student_no }}</td>
+                <td>{{ s.name }}</td>
+                <td>
+                  <input type="number" step="0.5" name="score_{{ s.id }}"
+                         value="{{ score_val if score_val is not none else '' }}"
+                         min="0" max="{{ q.full_score }}"
+                         class="form-control form-control-sm score-input"
+                         data-full="{{ q.full_score }}"
+                         onchange="updateRate(this)">
+                </td>
+                <td class="rate-cell">
+                  {% if score_val is not none %}
+                    {% set rate = (score_val / q.full_score * 100) if q.full_score > 0 else 0 %}
+                    <span class="badge {% if rate >= 80 %}bg-success{% elif rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                      {{ rate|round(1) }}%
+                    </span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 保存全部</button>
+      <a href="{{ url_for('scores.question_list', eid=exam.id) }}" class="btn btn-link">取消</a>
+    </form>
+  </div>
+</div>
+
+<script>
+function updateRate(input) {
+  const full = parseFloat(input.dataset.full);
+  const val = parseFloat(input.value);
+  const cell = input.closest('tr').querySelector('.rate-cell');
+  if (isNaN(val) || input.value === '') {
+    cell.innerHTML = '<span class="text-muted">—</span>';
+    return;
+  }
+  const rate = full > 0 ? (val / full * 100) : 0;
+  const cls = rate >= 80 ? 'bg-success' : (rate >= 60 ? 'bg-warning' : 'bg-danger');
+  cell.innerHTML = `<span class="badge ${cls}">${rate.toFixed(1)}%</span>`;
+}
+</script>
+{% endblock %}

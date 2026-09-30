@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}全班健康总览{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-clipboard2-pulse"></i> 全班健康档案总览</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('students.health_template') }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-download"></i> 下载体检模板
+    </a>
+    <a href="{{ url_for('students.health_upload') }}" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-cloud-upload"></i> 批量上传体检记录
+    </a>
+    <a href="{{ url_for('students.list_') }}" class="btn btn-link"><i class="bi bi-arrow-left"></i> 返回名单</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card text-white bg-info shadow-sm">
+      <div class="card-body">
+        <div class="small">学生总数</div>
+        <div class="display-6">{{ students|length }}</div>
+      </div>
+    </div>
+  </div>
+  {% set checked_count = students|length - (latest_map.values()|select('none')|list|length) %}
+  <div class="col-md-3">
+    <div class="card text-white bg-success shadow-sm">
+      <div class="card-body">
+        <div class="small">已体检人数</div>
+        <div class="display-6">{{ checked_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-danger shadow-sm">
+      <div class="card-body">
+        <div class="small">体检异常人数</div>
+        <div class="display-6">{{ abnormal_students|length }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-warning shadow-sm">
+      <div class="card-body">
+        <div class="small">视力预警人数</div>
+        <div class="display-6">{{ vision_students|length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if abnormal_students %}
+<div class="card border-danger shadow-sm mb-3">
+  <div class="card-header bg-danger text-white"><i class="bi bi-exclamation-circle"></i> 体检异常学生名单</div>
+  <div class="card-body">
+    <ul class="list-unstyled mb-0">
+      {% for s in abnormal_students %}
+        <li class="mb-1">
+          <a href="{{ url_for('students.health_list', sid=s.id) }}">{{ s.name }}</a>
+          ({{ s.student_no }})
+          {% set hr = latest_map.get(s.id) %}
+          {% if hr.abnormal_note %}<span class="text-danger">— {{ hr.abnormal_note }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{% if vision_students %}
+<div class="card border-warning shadow-sm mb-3">
+  <div class="card-header bg-warning"><i class="bi bi-eye"></i> 视力预警学生名单（单眼&lt;1.0）</div>
+  <div class="card-body">
+    <ul class="list-unstyled mb-0">
+      {% for s in vision_students %}
+        <li class="mb-1">
+          <a href="{{ url_for('students.health_list', sid=s.id) }}">{{ s.name }}</a>
+          ({{ s.student_no }})
+          {% set hr = latest_map.get(s.id) %}
+          <span class="text-warning">— 左{{ hr.vision_left }} 右{{ hr.vision_right }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{% if vision_decline %}
+<div class="card border-danger shadow-sm mb-3">
+  <div class="card-header bg-danger text-white">
+    <i class="bi bi-graph-down"></i> 视力下降趋势预警（较上次下降≥0.2）
+    <span class="badge bg-light text-danger ms-1">{{ vision_decline|length }}</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr><th>姓名</th><th>学号</th><th>眼别</th><th>上次视力</th><th>本次视力</th><th>下降</th><th>上次日期</th><th>本次日期</th></tr>
+        </thead>
+        <tbody>
+          {% for d in vision_decline %}
+          <tr>
+            <td><a href="{{ url_for('students.health_list', sid=d.student.id) }}">{{ d.student.name }}</a></td>
+            <td>{{ d.student.student_no }}</td>
+            <td><span class="badge bg-secondary">{{ d.side }}</span></td>
+            <td>{{ d.prev_vision }}</td>
+            <td class="text-danger fw-bold">{{ d.cur_vision }}</td>
+            <td><span class="badge bg-danger">-{{ d.delta }}</span></td>
+            <td><small class="text-muted">{{ d.prev_date|date_cn }}</small></td>
+            <td><small class="text-muted">{{ d.cur_date|date_cn }}</small></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm">
+  <div class="card-header"><i class="bi bi-table"></i> 全班最新体检一览</div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>学号</th><th>姓名</th><th>体检日期</th><th>身高</th><th>体重</th>
+            <th>左眼</th><th>右眼</th><th>结论</th><th>状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+            {% set hr = latest_map.get(s.id) %}
+            <tr>
+              <td>{{ s.student_no }}</td>
+              <td><a href="{{ url_for('students.health_list', sid=s.id) }}">{{ s.name }}</a></td>
+              {% if hr %}
+                <td>{{ hr.exam_date|date_cn }}</td>
+                <td>{{ hr.height if hr.height else '—' }}</td>
+                <td>{{ hr.weight if hr.weight else '—' }}</td>
+                <td {% if hr.vision_left and hr.vision_left < 1.0 %}class="text-danger fw-bold"{% endif %}>{{ hr.vision_left if hr.vision_left else '—' }}</td>
+                <td {% if hr.vision_right and hr.vision_right < 1.0 %}class="text-danger fw-bold"{% endif %}>{{ hr.vision_right if hr.vision_right else '—' }}</td>
+                <td>{{ hr.result or '—' }}</td>
+                <td>
+                  {% if hr.abnormal %}<span class="badge bg-danger">异常</span>{% else %}<span class="badge bg-success">正常</span>{% endif %}
+                </td>
+              {% else %}
+                <td colspan="7" class="text-muted text-center">未体检</td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

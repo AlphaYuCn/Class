@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}班干部任职记录{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-award"></i> 班干部任职记录</h2>
+  <div class="btn-group">
+    <a href="?status=all" class="btn btn-sm {% if status=='all' %}btn-primary{% else %}btn-outline-primary{% endif %}">全部</a>
+    <a href="?status=active" class="btn btn-sm {% if status=='active' %}btn-success{% else %}btn-outline-success{% endif %}">在任</a>
+    <a href="?status=inactive" class="btn btn-sm {% if status=='inactive' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">离任</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-person-plus"></i> 登记新任职</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('students.officer_new') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <label class="form-label">学生 <span class="text-danger">*</span></label>
+            <select name="student_id" class="form-select" required>
+              <option value="">— 选择学生 —</option>
+              {% for s in students %}
+                <option value="{{ s.id }}">{{ s.name }} ({{ s.student_no }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">职务 <span class="text-danger">*</span></label>
+            <input type="text" name="position" class="form-control" placeholder="如：班长、学习委员" list="position_list" required>
+            <datalist id="position_list">
+              <option value="班长">
+              <option value="副班长">
+              <option value="学习委员">
+              <option value="纪律委员">
+              <option value="生活委员">
+              <option value="体育委员">
+              <option value="文艺委员">
+              <option value="宣传委员">
+              <option value="团支书">
+              <option value="舍长">
+              <option value="课代表">
+            </datalist>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">任职日期</label>
+            <input type="date" name="start_date" value="{{ today }}" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">备注</label>
+            <input type="text" name="note" class="form-control" placeholder="如：本学期、聘期2025-2026">
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 登记</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-list-columns"></i> 任职记录 ({{ officers|length }})</div>
+      <div class="card-body">
+        {% if officers %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>学生</th><th>职务</th><th>任职日期</th><th>卸任日期</th><th>状态</th><th>备注</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for o in officers %}
+                  <tr>
+                    <td><a href="{{ url_for('students.profile', sid=o.student_id) }}">{{ o.student.name }}</a></td>
+                    <td><span class="badge bg-primary">{{ o.position }}</span></td>
+                    <td>{{ o.start_date|date_cn }}</td>
+                    <td>{{ o.end_date|date_cn if o.end_date else '—' }}</td>
+                    <td>
+                      {% if o.status == 'active' %}
+                        <span class="badge bg-success">{{ status_choices.get(o.status, o.status) }}</span>
+                      {% else %}
+                        <span class="badge bg-secondary">{{ status_choices.get(o.status, o.status) }}</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ o.note or '—' }}</td>
+                    <td>
+                      <a href="{{ url_for('students.officer_certificate', oid=o.id) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <i class="bi bi-award"></i> 证明
+                      </a>
+                      {% if o.status == 'active' %}
+                        <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#endModal{{ o.id }}">
+                          <i class="bi bi-box-arrow-right"></i> 卸任
+                        </button>
+                      {% endif %}
+                      <form method="post" action="{{ url_for('students.officer_delete', oid=o.id) }}" class="d-inline" onsubmit="return confirm('确认删除此记录？');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                      </form>
+                    </td>
+                  </tr>
+                  <!-- 卸任 Modal -->
+                  {% if o.status == 'active' %}
+                  <div class="modal fade" id="endModal{{ o.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                      <div class="modal-content">
+                        <form method="post" action="{{ url_for('students.officer_end', oid=o.id) }}">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <div class="modal-header">
+                            <h5 class="modal-title">{{ o.student.name }} 卸任 {{ o.position }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                          </div>
+                          <div class="modal-body">
+                            <div class="mb-3">
+                              <label class="form-label">卸任日期</label>
+                              <input type="date" name="end_date" value="{{ today }}" class="form-control">
+                            </div>
+                          </div>
+                          <div class="modal-footer">
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button class="btn btn-warning"><i class="bi bi-check"></i> 确认卸任</button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-award" style="font-size:3rem;"></i>
+            <p class="mt-2">暂无任职记录</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

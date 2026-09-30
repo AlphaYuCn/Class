@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}{{ exam.name }} 学科贡献度分析{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-bar-chart-line"></i> {{ exam.name }} 学科贡献度分析</h2>
+    <div class="text-muted small">{{ exam.exam_date|date_cn }} · 班级 {{ student_count }} 人</div>
+  </div>
+  <a href="{{ url_for('scores.overview', eid=exam.id) }}" class="btn btn-link">← 总览</a>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  <b>得分率</b>＝班级均分÷满分。<b>权重</b>＝该科满分÷总分（950）。<b>提分空间</b>＝距班级均分达到满分 85% 还差几个百分点。
+  <b>拉分科目</b>＝得分率 &lt;70%，<b>强项科目</b>＝得分率 ≥80%。
+</div>
+
+<div class="row g-3">
+  {% if weak_subjects %}
+  <div class="col-md-6">
+    <div class="card border-danger shadow-sm">
+      <div class="card-header bg-danger text-white"><i class="bi bi-arrow-down-circle"></i> 拉分科目 ({{ weak_subjects|length }})</div>
+      <div class="card-body">
+        <ul class="list-unstyled mb-0">
+          {% for c in weak_subjects %}
+            <li>{{ c.label }} — 得分率 <b class="text-danger">{{ c.rate }}%</b>，提分空间 {{ c.improve_space }}%</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if strong_subjects %}
+  <div class="col-md-6">
+    <div class="card border-success shadow-sm">
+      <div class="card-header bg-success text-white"><i class="bi bi-arrow-up-circle"></i> 强项科目 ({{ strong_subjects|length }})</div>
+      <div class="card-body">
+        <ul class="list-unstyled mb-0">
+          {% for c in strong_subjects %}
+            <li>{{ c.label }} — 得分率 <b class="text-success">{{ c.rate }}%</b>，均分 {{ c.avg }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    {{ chart_container('contrib-rate', '各科得分率与班级均分', 360) }}
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header"><i class="bi bi-table"></i> 各科贡献度统计</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>科目</th><th>满分</th><th>权重</th><th>均分</th><th>最高</th>
+            <th>最低</th><th>标准差</th><th>得分率</th><th>提分空间</th><th>状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in contribution %}
+            <tr>
+              <td><b>{{ c.label }}</b></td>
+              <td>{{ c.full }}</td>
+              <td>{{ c.weight }}%</td>
+              <td>{{ c.avg|score1 }}</td>
+              <td>{{ c.max|score1 }}</td>
+              <td>{{ c.min|score1 }}</td>
+              <td>{{ c.std }}</td>
+              <td>
+                <span class="badge {% if c.rate >= 80 %}bg-success{% elif c.rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}">{{ c.rate }}%</span>
+              </td>
+              <td>{{ c.improve_space }}%</td>
+              <td>
+                {% if c.rate < 70 %}<span class="badge bg-danger">拉分</span>{% endif %}
+                {% if c.rate >= 80 %}<span class="badge bg-success">强项</span>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if student_contribution %}
+<div class="card shadow-sm mt-3">
+  <div class="card-header bg-warning"><i class="bi bi-people"></i> 个人拉分学生清单 ({{ student_contribution|length }} 人，单科得分率&lt;60%)</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr><th>学号</th><th>姓名</th><th>总分</th><th>班排</th><th>拉分科目</th></tr>
+        </thead>
+        <tbody>
+          {% for item in student_contribution %}
+            <tr>
+              <td>{{ item.student.student_no }}</td>
+              <td><a href="{{ url_for('students.profile', sid=item.student.id) }}">{{ item.student.name }}</a></td>
+              <td>{{ item.total|score1 }}</td>
+              <td>{{ item.class_rank or '—' }}</td>
+              <td>
+                {% for w in item.weak %}
+                  <span class="badge bg-danger me-1" title="班级均分 {{ w.class_avg }}">
+                    {{ w.label }} {{ w.score|score1 }} ({{ w.rate }}%)
+                  </span>
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>
+  const contribData = [
+    {% for c in contribution %}
+    { label: "{{ c.label }}", rate: {{ c.rate }}, avg: {{ c.avg }}, full: {{ c.full }} },
+    {% endfor %}
+  ];
+  const contribChart = echarts.init(document.getElementById('contrib-rate'));
+  contribChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['得分率%', '均分'] },
+    grid: { left: 50, right: 50, bottom: 50 },
+    xAxis: { type: 'category', data: contribData.map(d => d.label) },
+    yAxis: [
+      { type: 'value', name: '得分率%', max: 100 },
+      { type: 'value', name: '均分' }
+    ],
+    series: [
+      {
+        name: '得分率%', type: 'bar',
+        data: contribData.map(d => ({
+          value: d.rate,
+          itemStyle: { color: d.rate >= 80 ? '#28a745' : (d.rate >= 60 ? '#ffc107' : '#dc3545') }
+        })),
+        markLine: { data: [{ yAxis: 70, name: '拉分线' }, { yAxis: 80, name: '强项线' }] }
+      },
+      {
+        name: '均分', type: 'line', yAxisIndex: 1,
+        data: contribData.map(d => d.avg),
+        lineStyle: { color: '#17a2b8' }, itemStyle: { color: '#17a2b8' }
+      }
+    ]
+  });
+  window.addEventListener('resize', () => contribChart.resize());
+</script>
+{% endblock %}
+{% endblock %}

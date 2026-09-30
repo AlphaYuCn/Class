@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}新增班会/活动{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-plus-circle"></i> 新增班会/活动记录</h2>
+  <a href="{{ url_for('daily.activity_list') }}" class="btn btn-link">← 返回列表</a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">主题 <span class="text-danger">*</span></label>
+          <input type="text" name="title" class="form-control" placeholder="如：期中表彰班会、秋季运动会" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">类型</label>
+          <select name="activity_type" class="form-select">
+            {% for k, v in type_choices.items() %}
+              <option value="{{ k }}">{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">日期</label>
+          <input type="date" name="held_at" value="{{ today }}" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">学期</label>
+          <input type="text" name="term" class="form-control" placeholder="如 2025秋">
+        </div>
+        <div class="col-md-8">
+          <label class="form-label">参与人</label>
+          <input type="text" name="participants" class="form-control" placeholder="如：全班、篮球队、学习小组">
+        </div>
+        <div class="col-12">
+          <label class="form-label">流程/议程</label>
+          <textarea name="agenda" rows="3" class="form-control" placeholder="分点描述"></textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label">总结</label>
+          <textarea name="summary" rows="4" class="form-control"></textarea>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-save"></i> 保存</button>
+      <a href="{{ url_for('daily.activity_list') }}" class="btn btn-link mt-3">取消</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

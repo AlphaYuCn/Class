@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}学生名单{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-person-vcard"></i> 学生名单</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('students.health_summary') }}" class="btn btn-outline-info">
+      <i class="bi bi-clipboard2-pulse"></i> 全班健康总览
+    </a>
+    <a href="{{ url_for('students.group_list') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-people"></i> 学生分组
+    </a>
+    <a href="{{ url_for('students.officer_list') }}" class="btn btn-outline-success">
+      <i class="bi bi-award"></i> 班干部任职
+    </a>
+    <a href="{{ url_for('students.template') }}" class="btn btn-outline-primary">
+      <i class="bi bi-download"></i> 下载模板
+    </a>
+    <a href="{{ url_for('students.upload') }}" class="btn btn-primary">
+      <i class="bi bi-upload"></i> 上传名单
+    </a>
+  </div>
+</div>
+
+<form method="get" class="mb-3">
+  <div class="input-group">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="按学号或姓名搜索...">
+    <button class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
+  </div>
+</form>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>学号</th>
+        <th>姓名</th>
+        <th>性别</th>
+        <th>民族</th>
+        <th>出生日期</th>
+        <th>星座</th>
+        <th>身高</th>
+        {% if latest_exam %}
+          <th>最近班排</th>
+          <th>最近年排</th>
+        {% endif %}
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for s in pagination.items %}
+      <tr>
+        <td>{{ s.student_no }}</td>
+        <td><a href="{{ url_for('students.profile', sid=s.id) }}">{{ s.name }}</a></td>
+        <td>{{ s.gender|gender_label }}</td>
+        <td>{{ s.ethnicity or '' }}</td>
+        <td>{{ s.birth_date|date_cn }}</td>
+        <td><span class="badge bg-secondary">{{ s.zodiac_sign or '' }}</span> {{ s.zodiac_element|element_label }}</td>
+        <td>{{ s.height if s.height else '' }}</td>
+        {% if latest_exam %}
+          {% set rank_info = rank_map.get(s.id) %}
+          <td>{{ rank_info[0] if rank_info else '' }}</td>
+          <td>{{ rank_info[1] if rank_info else '' }}</td>
+        {% endif %}
+        <td>
+          <a href="{{ url_for('students.profile', sid=s.id) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-eye"></i>
+          </a>
+          <a href="{{ url_for('students.edit', sid=s.id) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-pencil"></i>
+          </a>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="9" class="text-center text-muted py-4">暂无学生记录, 请先下载模板并上传名单</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav>
+  <ul class="pagination justify-content-center">
+    {% for p in range(1, pagination.pages + 1) %}
+      <li class="page-item {% if p == pagination.page %}active{% endif %}">
+        <a class="page-link" href="?page={{ p }}&q={{ q }}">{{ p }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

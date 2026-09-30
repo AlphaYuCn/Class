@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}编辑 {{ s.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-pencil-square"></i> 编辑 {{ s.name }} 的档案</h2>
+  <a href="{{ url_for('students.profile', sid=s.id) }}" class="btn btn-link">← 返回档案</a>
+</div>
+
+<form method="post" class="card shadow-sm">
+  {{ csrf_token() if csrf_token is defined }}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">学号</label>
+        <input type="text" class="form-control" value="{{ s.student_no }}" disabled>
+        <div class="form-text">学号不可修改</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">姓名 <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="name" value="{{ s.name }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">性别</label>
+        <select class="form-select" name="gender">
+          <option value="">请选择</option>
+          <option value="M" {{ 'selected' if s.gender == 'M' }}>男</option>
+          <option value="F" {{ 'selected' if s.gender == 'F' }}>女</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">民族</label>
+        <input type="text" class="form-control" name="ethnicity"
+               value="{{ s.ethnicity or '' }}" placeholder="汉族">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">身高(cm)</label>
+        <input type="number" step="0.1" class="form-control" name="height"
+               value="{{ s.height if s.height else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">出生日期</label>
+        <input type="date" class="form-control" name="birth_date"
+               value="{{ s.birth_date.isoformat() if s.birth_date else '' }}">
+        <div class="form-text">填后自动算星座</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">身份证号</label>
+        <input type="text" class="form-control" name="id_card"
+               value="{{ s.id_card or '' }}" maxlength="18">
+      </div>
+      <div class="col-12"><hr class="my-2"><span class="small text-muted">家长联系方式</span></div>
+      <div class="col-md-6">
+        <label class="form-label">父亲姓名</label>
+        <input type="text" class="form-control" name="father_name"
+               value="{{ s.father_name or '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">父亲电话</label>
+        <input type="text" class="form-control" name="father_phone"
+               value="{{ s.father_phone or '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">母亲姓名</label>
+        <input type="text" class="form-control" name="mother_name"
+               value="{{ s.mother_name or '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">母亲电话</label>
+        <input type="text" class="form-control" name="mother_phone"
+               value="{{ s.mother_phone or '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">紧急联系人</label>
+        <input type="text" class="form-control" name="emergency_contact"
+               value="{{ s.emergency_contact or '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">紧急联系电话</label>
+        <input type="text" class="form-control" name="emergency_phone"
+               value="{{ s.emergency_phone or '' }}">
+      </div>
+      <div class="col-12">
+        <label class="form-label">备注</label>
+        <textarea class="form-control" name="note" rows="4"
+                  placeholder="可记录性格特点、特长、家访情况等">{{ s.note or '' }}</textarea>
+      </div>
+      {% if s.zodiac_sign %}
+      <div class="col-12">
+        <span class="badge bg-secondary">星座: {{ s.zodiac_sign }} ({{ s.zodiac_element|element_label }})</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-footer text-end">
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 保存</button>
+    <a href="{{ url_for('students.profile', sid=s.id) }}" class="btn btn-link">取消</a>
+  </div>
+</form>
+{% endblock %}

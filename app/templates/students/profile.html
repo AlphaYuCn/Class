@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }} 学生档案{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-person-circle"></i> {{ s.name }} 的学生档案</h2>
+  <div class="btn-group">
+  <a href="{{ url_for('students.edit', sid=s.id) }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-pencil"></i> 编辑档案
+      </a>
+      <a href="{{ url_for('students.photo_manage', sid=s.id) }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-images"></i> 照片管理
+      </a>
+      <a href="{{ url_for('students.health_list', sid=s.id) }}" class="btn btn-sm btn-outline-info">
+        <i class="bi bi-heart-pulse"></i> 健康档案
+      </a>
+      <a href="{{ url_for('students.full', sid=s.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+        <i class="bi bi-printer"></i> 完整档案打印版
+      </a>
+    <a href="{{ url_for('daily.student_page', sid=s.id) }}" class="btn btn-outline-warning">
+      <i class="bi bi-clipboard"></i> 日常管理
+    </a>
+    <a href="{{ url_for('daily.contact_student', sid=s.id) }}" class="btn btn-outline-info">
+      <i class="bi bi-telephone"></i> 家校联系
+    </a>
+    <a href="{{ url_for('students.list_') }}" class="btn btn-link">返回名单</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-primary text-white">基本信息</div>
+      <div class="card-body">
+        <table class="table table-borderless mb-0">
+          <tr><td class="text-muted">学号</td><td>{{ s.student_no }}</td></tr>
+          <tr><td class="text-muted">姓名</td><td>{{ s.name }}</td></tr>
+          <tr><td class="text-muted">性别</td><td>{{ s.gender|gender_label }}</td></tr>
+          <tr><td class="text-muted">民族</td><td>{{ s.ethnicity or '' }}</td></tr>
+          <tr><td class="text-muted">出生日期</td><td>{{ s.birth_date|date_cn }}</td></tr>
+          <tr><td class="text-muted">身份证号</td><td>{{ s.id_card or '' }}</td></tr>
+          <tr><td class="text-muted">身高</td><td>{{ s.height if s.height else '' }} cm</td></tr>
+          <tr><td class="text-muted">星座</td>
+              <td><span class="badge bg-secondary">{{ s.zodiac_sign or '' }}</span> {{ s.zodiac_element|element_label }}</td></tr>
+        </table>
+        {% if s.father_name or s.father_phone or s.mother_name or s.mother_phone or s.emergency_contact %}
+        <hr class="my-2">
+        <div class="small text-muted mb-1">家长联系方式</div>
+        <table class="table table-borderless table-sm mb-0 small">
+          {% if s.father_name or s.father_phone %}
+          <tr><td class="text-muted">父亲</td><td>{{ s.father_name or '' }} <span class="text-muted">{{ s.father_phone or '' }}</span></td></tr>
+          {% endif %}
+          {% if s.mother_name or s.mother_phone %}
+          <tr><td class="text-muted">母亲</td><td>{{ s.mother_name or '' }} <span class="text-muted">{{ s.mother_phone or '' }}</span></td></tr>
+          {% endif %}
+          {% if s.emergency_contact or s.emergency_phone %}
+          <tr><td class="text-muted">紧急</td><td>{{ s.emergency_contact or '' }} <span class="text-muted">{{ s.emergency_phone or '' }}</span></td></tr>
+          {% endif %}
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-success text-white">最近一次成绩排名</div>
+      <div class="card-body">
+        {% if latest_sr %}
+          <table class="table table-borderless mb-0">
+            <tr><td class="text-muted">考试</td><td>{{ latest_sr.exam.name }}</td></tr>
+            <tr><td class="text-muted">日期</td><td>{{ latest_sr.exam.exam_date|date_cn }}</td></tr>
+            <tr><td class="text-muted">总分</td><td><b>{{ latest_sr.total }}</b></td></tr>
+            <tr><td class="text-muted">班级排名</td><td><span class="badge bg-primary">第 {{ latest_sr.class_rank }} 名</span></td></tr>
+            <tr><td class="text-muted">年级排名</td><td>第 {{ latest_sr.grade_rank or '' }} 名</td></tr>
+          </table>
+          <a href="{{ url_for('scores.detail', eid=latest_sr.exam_id, sid=s.id) }}" class="btn btn-sm btn-outline-success mt-2">
+            查看下钻分析 →
+          </a>
+          <a href="{{ url_for('scores.trend', sid=s.id) }}" class="btn btn-sm btn-outline-primary mt-2">
+            <i class="bi bi-graph-up"></i> 成绩趋势
+          </a>
+        {% else %}
+          <div class="text-center text-muted py-4">暂无成绩数据</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-warning text-white">最近奖惩记录</div>
+      <div class="card-body">
+        {% if praise_records or punish_records %}
+          <ul class="list-group list-group-flush">
+            {% for r in praise_records %}
+              <li class="list-group-item d-flex justify-content-between">
+                <span><i class="bi bi-award-fill text-warning"></i> {{ r.type_label() }}: {{ r.description or '' }}</span>
+                <small class="text-muted">{{ r.occurred_at|date_cn }}</small>
+              </li>
+            {% endfor %}
+            {% for r in punish_records %}
+              <li class="list-group-item d-flex justify-content-between">
+                <span><i class="bi bi-exclamation-circle text-danger"></i> {{ r.type_label() }}: {{ r.description or '' }}</span>
+                <small class="text-muted">{{ r.occurred_at|date_cn }}</small>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-center text-muted py-4">暂无奖惩记录</div>
+        {% endif %}
+        <a href="{{ url_for('daily.student_page', sid=s.id) }}" class="btn btn-sm btn-outline-warning mt-2">
+          前往日常管理添加 →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if all_records %}
+<div class="card mt-4 shadow-sm">
+  <div class="card-header">历次成绩记录</div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead class="table-light">
+          <tr>
+            <th>考试</th><th>日期</th><th>总分</th><th>班排</th><th>年排</th>
+            <th>语文</th><th>数学</th><th>英语</th><th>物理</th>
+            <th>化学</th><th>生物</th><th>政治</th><th>历史</th><th>地理</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in all_records %}
+          <tr>
+            <td>{{ r.exam.name }}</td>
+            <td>{{ r.exam.exam_date|date_cn }}</td>
+            <td><b>{{ r.total|score1 }}</b></td>
+            <td>{{ r.class_rank or '' }}</td>
+            <td>{{ r.grade_rank or '' }}</td>
+            <td>{{ r.chinese|score1 }}</td>
+            <td>{{ r.math|score1 }}</td>
+            <td>{{ r.english|score1 }}</td>
+            <td>{{ r.physics|score1 }}</td>
+            <td>{{ r.chemistry|score1 }}</td>
+            <td>{{ r.biology|score1 }}</td>
+            <td>{{ r.politics|score1 }}</td>
+            <td>{{ r.history|score1 }}</td>
+            <td>{{ r.geography|score1 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if s.note %}
+<div class="card mt-3 bg-light">
+  <div class="card-body">
+    <h6>备注</h6>
+    <p class="mb-0">{{ s.note|nl2br if s.note else '' }}</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

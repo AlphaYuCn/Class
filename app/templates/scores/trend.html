@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}{{ s.name }} 成绩趋势{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-graph-up"></i> {{ s.name }} 成绩趋势</h2>
+    <div class="text-muted small">
+      共 {{ records|length }} 次考试
+      · <a href="{{ url_for('students.profile', sid=s.id) }}">← 学生档案</a>
+    </div>
+  </div>
+  {% if records %}
+  <a href="{{ url_for('scores.detail', eid=records[-1].exam_id, sid=s.id) }}"
+     class="btn btn-outline-primary btn-sm">
+    最近一次下钻 →
+  </a>
+  {% endif %}
+</div>
+
+{% if records %}
+<div class="row g-3">
+  <div class="col-12">
+    {{ chart_container('trend-total', '总分 + 年级排名趋势', 320) }}
+  </div>
+  <div class="col-12">
+    {{ chart_container('trend-subjects', '九科成绩趋势', 360) }}
+  </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header">历次成绩表</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>考试</th><th>日期</th><th>总分</th><th>年排</th><th>班排</th>
+            <th>语文</th><th>数学</th><th>英语</th><th>物理</th>
+            <th>化学</th><th>生物</th><th>政治</th><th>历史</th><th>地理</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records | reverse %}
+          <tr>
+            <td><a href="{{ url_for('scores.detail', eid=r.exam_id, sid=s.id) }}">{{ r.exam.name }}</a></td>
+            <td><small class="text-muted">{{ r.exam.exam_date|date_cn }}</small></td>
+            <td><b>{{ r.total|score1 }}</b></td>
+            <td><span class="badge bg-warning">{{ r.grade_rank if r.grade_rank is not none else r.class_rank }}</span></td>
+            <td><small class="text-muted">{{ r.class_rank or '' }}</small></td>
+            <td>{{ r.chinese|score1 }}</td>
+            <td>{{ r.math|score1 }}</td>
+            <td>{{ r.english|score1 }}</td>
+            <td>{{ r.physics|score1 }}</td>
+            <td>{{ r.chemistry|score1 }}</td>
+            <td>{{ r.biology|score1 }}</td>
+            <td>{{ r.politics|score1 }}</td>
+            <td>{{ r.history|score1 }}</td>
+            <td>{{ r.geography|score1 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-inbox" style="font-size:3rem"></i>
+    <p class="mt-3">该学生暂无成绩数据。</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const SID = {{ s.id }};
+  if (window.initTrend) initTrend(SID);
+</script>
+{% endblock %}

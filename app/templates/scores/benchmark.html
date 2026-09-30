@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}{{ exam.name }} 年级对标分析{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-bullseye"></i> {{ exam.name }} 年级对标分析</h2>
+    <div class="text-muted small">{{ exam.exam_date|date_cn }}</div>
+  </div>
+  <a href="{{ url_for('scores.overview', eid=exam.id) }}" class="btn btn-link">← 总览</a>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  录入年级均分后系统将自动比对班级与年级差距。<b>差异</b>＝班级均分 − 年级均分，正值表示高于年级，负值表示低于年级。
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-pencil"></i> 录入/更新年级数据</div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <label class="form-label">年级人数</label>
+            <input type="number" name="grade_stu_count" class="form-control"
+                   value="{{ bm_map.get('total').grade_stu_count if bm_map.get('total') and bm_map.get('total').grade_stu_count else '' }}"
+                   placeholder="如 600">
+          </div>
+          <hr class="my-2">
+          <div class="small text-muted mb-2">各科年级均分</div>
+          {% for subj in subjects + ['total'] %}
+            {% set bm = bm_map.get(subj) %}
+            <div class="mb-2">
+              <label class="form-label small">
+                {% if subj == 'total' %}总分{% else %}{{ subject_label[subj] }}{% endif %}
+                <small class="text-muted">(满分 {{ 950 if subj == 'total' else subject_full[subj] }})</small>
+              </label>
+              <input type="number" step="0.1" name="bm_{{ subj }}" class="form-control form-control-sm"
+                     value="{{ bm.grade_avg if bm and bm.grade_avg else '' }}"
+                     placeholder="年级均分">
+            </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary mt-2"><i class="bi bi-save"></i> 保存</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    {{ chart_container('benchmark-bar', '班级 vs 年级 均分对比', 360) }}
+
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-table"></i> 对标明细</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>科目</th><th>满分</th><th>班级均分</th><th>年级均分</th>
+                <th>差异</th><th>百分比</th><th>年级人数</th><th>评估</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in comparison %}
+                <tr>
+                  <td><b>{{ c.label }}</b></td>
+                  <td>{{ c.full }}</td>
+                  <td>{{ c.class_avg|score1 }}</td>
+                  <td>
+                    {% if c.grade_avg is not none %}{{ c.grade_avg }}{% else %}
+                      <span class="text-muted">未录入</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if c.diff is not none %}
+                      <span class="badge {% if c.diff > 0 %}bg-success{% elif c.diff < 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                        {{ '+' ~ c.diff if c.diff > 0 else c.diff }}
+                      </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td>
+                    {% if c.grade_avg is not none %}{{ c.rate }}%{% else %}—{% endif %}
+                  </td>
+                  <td>{{ c.grade_count or '—' }}</td>
+                  <td>
+                    {% if c.diff is not none %}
+                      {% if c.diff > 0 %}<span class="badge bg-success">高于年级</span>{% endif %}
+                      {% if c.diff < 0 %}<span class="badge bg-danger">低于年级</span>{% endif %}
+                      {% if c.diff == 0 %}<span class="badge bg-secondary">持平</span>{% endif %}
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>
+  const comp = [
+    {% for c in comparison if c.grade_avg is not none %}
+    { label: "{{ c.label }}", class_avg: {{ c.class_avg }}, grade_avg: {{ c.grade_avg }} },
+    {% endfor %}
+  ];
+  const bmChart = echarts.init(document.getElementById('benchmark-bar'));
+  bmChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['班级均分', '年级均分'] },
+    grid: { left: 50, right: 30, bottom: 50 },
+    xAxis: { type: 'category', data: comp.map(c => c.label) },
+    yAxis: { type: 'value', name: '均分' },
+    series: [
+      {
+        name: '班级均分', type: 'bar',
+        data: comp.map(c => c.class_avg),
+        itemStyle: { color: '#0d6efd' }
+      },
+      {
+        name: '年级均分', type: 'bar',
+        data: comp.map(c => c.grade_avg),
+        itemStyle: { color: '#ffc107' }
+      }
+    ]
+  });
+  window.addEventListener('resize', () => bmChart.resize());
+</script>
+{% endblock %}
+{% endblock %}

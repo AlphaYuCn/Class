@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ exam.name }} 试卷题目管理{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-list-ol"></i> {{ exam.name }} 试卷题目管理</h2>
+    <div class="text-muted small">{{ exam.exam_date|date_cn }}</div>
+  </div>
+  <div class="btn-group">
+    <a href="{{ url_for('scores.question_report', eid=exam.id) }}" class="btn btn-outline-success">
+      <i class="bi bi-clipboard-data"></i> 质量报告
+    </a>
+    <a href="{{ url_for('scores.knowledge_analysis', eid=exam.id) }}" class="btn btn-outline-primary">
+      <i class="bi bi-diagram-3"></i> 知识点分析
+    </a>
+    <a href="{{ url_for('scores.overview', eid=exam.id) }}" class="btn btn-link">← 总览</a>
+  </div>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  录入试卷每道题的题号、满分和知识点（用分号 <code>;</code> 分隔多个知识点），便于后续逐题得分分析、知识点掌握度统计与试卷质量评估。
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-plus-circle"></i> 添加题目</div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <label class="form-label">科目 <span class="text-danger">*</span></label>
+            <select name="subject" class="form-select" required>
+              {% for subj in subjects %}
+                <option value="{{ subj }}">{{ subject_label[subj] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">题号 <span class="text-danger">*</span></label>
+              <input type="text" name="question_no" class="form-control" placeholder="如 1、2(1)、作文" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label">满分 <span class="text-danger">*</span></label>
+              <input type="number" step="0.5" name="full_score" class="form-control" placeholder="如 5、20、60" required>
+            </div>
+          </div>
+          <div class="mb-2 mt-2">
+            <label class="form-label">题型</label>
+            <select name="question_type" class="form-select">
+              <option value="">— 不指定 —</option>
+              <option value="choice">选择题</option>
+              <option value="fill">填空题</option>
+              <option value="solve">解答题</option>
+              <option value="essay">作文/论述</option>
+              <option value="experiment">实验题</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">知识点</label>
+            <input type="text" name="knowledge_points" class="form-control" placeholder="多个用 ; 分隔，如：函数;导数">
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 添加</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <i class="bi bi-list-ul"></i> 题目列表 ({{ questions|length }})
+      </div>
+      <div class="card-body">
+        {% if questions %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>科目</th><th>题号</th><th>题型</th><th>满分</th>
+                  <th>知识点</th><th>已录人数</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for q in questions %}
+                  <tr>
+                    <td><span class="badge bg-info">{{ subject_label.get(q.subject, q.subject) }}</span></td>
+                    <td>{{ q.question_no }}</td>
+                    <td>{{ q.question_type or '—' }}</td>
+                    <td>{{ q.full_score|score1 }}</td>
+                    <td><small>{{ q.knowledge_points or '—' }}</small></td>
+                    <td>
+                      <span class="badge {% if scored_students.get(q.id, 0) > 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ scored_students.get(q.id, 0) }} 人
+                      </span>
+                    </td>
+                    <td>
+                      <a href="{{ url_for('scores.question_scores', eid=exam.id, qid=q.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i> 录分
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-list-ol" style="font-size:3rem;"></i>
+            <p class="mt-2">暂无题目，请从左侧添加</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

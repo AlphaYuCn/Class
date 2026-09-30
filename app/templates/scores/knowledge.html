@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}{{ exam.name }} 知识点掌握度{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-diagram-3"></i> {{ exam.name }} 知识点掌握度</h2>
+    <div class="text-muted small">{{ exam.exam_date|date_cn }}</div>
+  </div>
+  <a href="{{ url_for('scores.question_list', eid=exam.id) }}" class="btn btn-link">← 题目管理</a>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  基于题目标注的知识点统计班级掌握度（每生每题得分率均值的百分比）。<b>≥80% 优秀</b>，<b>60%~80% 合格</b>，<b>&lt;60% 薄弱</b>。
+  学生薄弱知识点 = 个人掌握度低于 70% 的知识点。
+</div>
+
+{% for subj, data in chart_data.items() %}
+  {{ chart_container('kp-' ~ subj, data.label ~ ' 知识点掌握度', 320) }}
+{% endfor %}
+
+<div class="card shadow-sm">
+  <div class="card-header"><i class="bi bi-table"></i> 知识点掌握度总览</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>科目</th><th>知识点</th><th>均掌握度</th><th>样本数</th>
+            <th>状态</th><th>对应题号</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for k in knowledge_summary %}
+            <tr>
+              <td><span class="badge bg-info">{{ k.label }}</span></td>
+              <td>{{ k.kp }}</td>
+              <td>
+                <span class="badge {% if k.avg_rate >= 80 %}bg-success{% elif k.avg_rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                  {{ k.avg_rate }}%
+                </span>
+              </td>
+              <td>{{ k.count }}</td>
+              <td>
+                {% if k.avg_rate >= 80 %}优秀{% elif k.avg_rate >= 60 %}合格{% else %}薄弱{% endif %}
+              </td>
+              <td><small class="text-muted">{{ k.questions }}</small></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">暂无知识点数据</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if student_kp %}
+<div class="card shadow-sm mt-3">
+  <div class="card-header bg-warning"><i class="bi bi-exclamation-triangle"></i> 学生薄弱知识点清单 ({{ student_kp|length }} 人)</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr><th>学号</th><th>姓名</th><th>薄弱知识点（个人掌握度&lt;70%）</th></tr>
+        </thead>
+        <tbody>
+          {% for item in student_kp %}
+            <tr>
+              <td>{{ item.student.student_no }}</td>
+              <td><a href="{{ url_for('students.profile', sid=item.student.id) }}">{{ item.student.name }}</a></td>
+              <td>
+                {% for w in item.weak_kps %}
+                  <span class="badge {% if w.rate < 50 %}bg-danger{% else %}bg-warning{% endif %} me-1">
+                    {{ w.label }}·{{ w.kp }} ({{ w.rate }}%)
+                  </span>
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>
+  const chartData = {
+    {% for subj, data in chart_data.items() %}
+    "{{ subj }}": { labels: {{ data.labels|tojson }}, rates: {{ data.rates|tojson }}, label: "{{ data.label }}" },
+    {% endfor %}
+  };
+  Object.entries(chartData).forEach(([subj, d]) => {
+    const el = document.getElementById('kp-' + subj);
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption({
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: 60, right: 30, bottom: 100 },
+      xAxis: {
+        type: 'category',
+        data: d.labels,
+        axisLabel: { rotate: 45 }
+      },
+      yAxis: { type: 'value', name: '掌握度%', max: 100 },
+      series: [{
+        type: 'bar',
+        data: d.rates.map(r => ({
+          value: r,
+          itemStyle: { color: r >= 80 ? '#28a745' : (r >= 60 ? '#ffc107' : '#dc3545') }
+        })),
+        markLine: { data: [{ yAxis: 60, name: '及格' }, { yAxis: 80, name: '优秀' }] }
+      }]
+    });
+    window.addEventListener('resize', () => chart.resize());
+  });
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if action == 'cancel' %}销假确认{% else %}新建请假{% endif %}
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">
+      <i class="bi bi-calendar-x"></i>
+      {% if action == 'cancel' %}销假确认{% else %}新建请假登记{% endif %}
+    </h2>
+  </div>
+  <a href="{{ url_for('daily.leave_list') }}" class="btn btn-link">← 请假列表</a>
+</div>
+
+{% if action == 'cancel' and r %}
+<div class="card border-warning mb-3">
+  <div class="card-header bg-warning text-white"><i class="bi bi-info-circle"></i> 原请假信息</div>
+  <div class="card-body">
+    <p class="mb-2">学生：<b>{{ r.student.name }}</b> ({{ r.student.student_no }})</p>
+    <p class="mb-2">请假期间：<b>{{ r.start_date|date_cn }}</b> 至 <b>{{ r.end_date|date_cn if r.end_date else r.start_date|date_cn }}</b> （计划 {{ r.leave_days or '—' }} 天）</p>
+    <p class="mb-0">原因：{{ r.leave_reason or r.description or '—' }}</p>
+  </div>
+</div>
+
+<form method="post" class="card shadow-sm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-header"><i class="bi bi-check2-circle"></i> 销假确认</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">销假日期</label>
+        <input type="date" name="cancel_date" class="form-control" value="{{ today }}" required>
+      </div>
+    </div>
+    <div class="alert alert-info small mt-3">
+      <i class="bi bi-info-circle"></i> 若销假日期早于原计划结束日期，系统将自动重新计算实际请假天数。
+    </div>
+    <button class="btn btn-success"><i class="bi bi-check-lg"></i> 确认销假</button>
+  </div>
+</form>
+
+{% else %}
+<form method="post" class="card shadow-sm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card-header"><i class="bi bi-plus-circle"></i> 请假登记</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">学生 <span class="text-danger">*</span></label>
+        <select name="student_id" class="form-select" required>
+          <option value="">请选择</option>
+          {% for s in students %}
+          <option value="{{ s.id }}">{{ s.name }}（{{ s.student_no }}）</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">开始日期 <span class="text-danger">*</span></label>
+        <input type="date" name="start_date" id="start_date" class="form-control"
+               value="{{ today }}" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">结束日期</label>
+        <input type="date" name="end_date" id="end_date" class="form-control" value="{{ today }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">请假天数</label>
+        <input type="text" id="days_display" class="form-control bg-light" readonly value="1 天">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">请假原因</label>
+        <input type="text" name="leave_reason" class="form-control"
+               placeholder="如: 病假/事假/家事">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">备注</label>
+        <input type="text" name="description" class="form-control" placeholder="补充说明">
+      </div>
+      <div class="col-12">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="parent_notified" id="parent_notified">
+          <label class="form-check-label" for="parent_notified">
+            <i class="bi bi-telephone"></i> 已告知家长
+            <small class="text-muted">（必须确认家长已知悉此次请假）</small>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 确认登记</button>
+    </div>
+  </div>
+</form>
+
+<script>
+  function calcDays() {
+    const sd = document.getElementById('start_date').value;
+    const ed = document.getElementById('end_date').value || sd;
+    if (sd && ed) {
+      const s = new Date(sd), e = new Date(ed);
+      const days = Math.round((e - s) / 86400000) + 1;
+      document.getElementById('days_display').value = days + ' 天';
+    }
+  }
+  document.getElementById('start_date').addEventListener('change', calcDays);
+  document.getElementById('end_date').addEventListener('change', calcDays);
+  calcDays();
+</script>
+{% endif %}
+{% endblock %}

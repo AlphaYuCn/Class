@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}请假管理{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-calendar-x"></i> 请假管理</h2>
+    <div class="text-muted small">
+      {% if status == 'active' %}未销假
+      {% elif status == 'canceled' %}已销假
+      {% else %}全部记录{% endif %}
+      · 共 {{ leaves|length }} 条
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('daily.leave_new') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-circle"></i> 新建请假
+    </a>
+    <a href="{{ url_for('daily.index') }}" class="btn btn-link btn-sm">← 日常管理</a>
+  </div>
+</div>
+
+<div class="btn-group mb-3">
+  <a href="{{ url_for('daily.leave_list', status='all') }}"
+     class="btn btn-sm {% if status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">全部</a>
+  <a href="{{ url_for('daily.leave_list', status='active') }}"
+     class="btn btn-sm {% if status == 'active' %}btn-warning{% else %}btn-outline-warning{% endif %}">未销假</a>
+  <a href="{{ url_for('daily.leave_list', status='canceled') }}"
+     class="btn btn-sm {% if status == 'canceled' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">已销假</a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    {% if leaves %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>学生</th><th>开始</th><th>结束</th><th>天数</th>
+            <th>原因</th><th>家长知晓</th><th>状态</th><th class="text-end">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in leaves %}
+          <tr>
+            <td>
+              <a href="{{ url_for('daily.growth', sid=r.student_id) }}" class="fw-bold text-decoration-none">
+                {{ r.student.name }}
+              </a>
+              <small class="text-muted">{{ r.student.student_no }}</small>
+            </td>
+            <td><small>{{ r.start_date|date_cn if r.start_date else r.occurred_at|date_cn }}</small></td>
+            <td><small>{{ r.end_date|date_cn if r.end_date else '—' }}</small></td>
+            <td>
+              {% if r.leave_days %}
+                <span class="badge bg-info">{{ r.leave_days|score1 }} 天</span>
+              {% else %}—{% endif %}
+            </td>
+            <td><small>{{ r.leave_reason or r.description or '' }}</small></td>
+            <td>
+              {% if r.parent_notified %}
+                <span class="badge bg-success">已告知</span>
+              {% else %}
+                <span class="badge bg-danger">未告知</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.cancel_date %}
+                <span class="badge bg-secondary">已销假 {{ r.cancel_date|date_cn }}</span>
+              {% else %}
+                <span class="badge bg-warning">请假中</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if not r.cancel_date %}
+              <a href="{{ url_for('daily.leave_cancel', lid=r.id) }}"
+                 class="btn btn-sm btn-outline-success">
+                <i class="bi bi-check2-circle"></i> 销假
+              </a>
+              {% endif %}
+              <form method="post" action="{{ url_for('daily.leave_delete', lid=r.id) }}"
+                    onsubmit="return confirm('确认删除?')" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-inbox" style="font-size:3rem"></i>
+      <p class="mt-3">暂无请假记录</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

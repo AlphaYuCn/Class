@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }} 照片管理{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-images"></i> {{ s.name }} 的照片管理</h2>
+  <a href="{{ url_for('students.profile', sid=s.id) }}" class="btn btn-link">
+    <i class="bi bi-arrow-left"></i> 返回档案
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-upload"></i> 上传新照片</div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">选择照片 <span class="text-danger">*</span></label>
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="form-control" required>
+            <div class="form-text">支持 jpg/jpeg/png/webp 格式</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">拍摄日期</label>
+            <input type="date" name="taken_at" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">备注</label>
+            <textarea name="note" rows="2" class="form-control" placeholder="如：军训合影、证件照"></textarea>
+          </div>
+          <div class="form-check mb-3">
+            <input type="checkbox" name="is_primary" id="is_primary" class="form-check-input">
+            <label for="is_primary" class="form-check-label">设为主照片（在档案页展示）</label>
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-cloud-arrow-up"></i> 上传</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-grid"></i> 已上传照片 ({{ photos|length }})</div>
+      <div class="card-body">
+        {% if photos %}
+          <div class="row g-3">
+            {% for p in photos %}
+              <div class="col-sm-6 col-lg-4">
+                <div class="card h-100 {% if p.is_primary %}border-primary{% endif %}">
+                  <img src="{{ url_for('static', filename=p.photo_path) }}" class="card-img-top" alt="照片" style="object-fit:cover;height:180px;">
+                  <div class="card-body p-2">
+                    {% if p.is_primary %}
+                      <span class="badge bg-primary mb-1">主照片</span>
+                    {% endif %}
+                    <div class="small text-muted">{{ p.taken_at|date_cn if p.taken_at else p.created_at.strftime('%Y-%m-%d') }}</div>
+                    {% if p.note %}<div class="small">{{ p.note }}</div>{% endif %}
+                  </div>
+                  <div class="card-footer p-2 d-flex justify-content-between">
+                    {% if not p.is_primary %}
+                      <form method="post" action="{{ url_for('students.photo_set_primary', sid=s.id, pid=p.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-star"></i> 设主</button>
+                      </form>
+                    {% else %}
+                      <span class="text-muted small"><i class="bi bi-star-fill"></i> 已为主</span>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('students.photo_delete', sid=s.id, pid=p.id) }}" onsubmit="return confirm('确认删除该照片？');">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-image" style="font-size:3rem;"></i>
+            <p class="mt-2">暂无照片，请从左侧上传</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

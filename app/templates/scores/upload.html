@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}上传成绩单{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-upload"></i> 上传成绩单</h2>
+  <a href="{{ url_for('scores.template') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-download"></i> 下载模板
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-7">
+    <form method="post" enctype="multipart/form-data" class="card shadow-sm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label">考试名称</label>
+          <input type="text" class="form-control" name="exam_name"
+                 placeholder="如：2026年9月月考（留空则按日期自动命名）">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">考试日期 <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" name="exam_date" required>
+          <div class="form-text">用于按时间排序与自动比对上次成绩</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Excel 文件 <span class="text-danger">*</span></label>
+          <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required>
+          <div class="form-text">必须使用下载的模板格式，包含 13 列</div>
+        </div>
+      </div>
+      <div class="card-footer text-end">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 上传并生成分析</button>
+        <a href="{{ url_for('scores.index') }}" class="btn btn-link">取消</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">模板说明</div>
+      <div class="card-body small">
+        <p>成绩单模板共 13 列：</p>
+        <ol class="mb-2">
+          <li>学号（必须与已上传的学生名单一致）</li>
+          <li>姓名</li>
+          <li>语文（满分 150）</li>
+          <li>数学（满分 150）</li>
+          <li>英语（满分 150）</li>
+          <li>物理（满分 100）</li>
+          <li>化学（满分 100）</li>
+          <li>生物（满分 100）</li>
+          <li>政治（满分 100）</li>
+          <li>历史（满分 100）</li>
+          <li>地理（满分 100）</li>
+          <li>总分（可留空，系统自动求和）</li>
+          <li>年级排名（可选）</li>
+        </ol>
+        <hr>
+        <p class="mb-1"><b>缺考处理：</b>某科留空视为缺考，统计时按 skipna 处理，不影响其他科目平均。</p>
+        <p class="mb-0"><b>班级排名：</b>无需手动填写，系统自动按总分降序生成（同分同名次）。</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

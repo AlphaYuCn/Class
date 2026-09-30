@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}{{ exam.name }} 试卷质量报告{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-clipboard-data"></i> {{ exam.name }} 试卷质量报告</h2>
+    <div class="text-muted small">{{ exam.exam_date|date_cn }} · 共 {{ total_questions }} 题 · 已录分 {{ total_scored }} 题</div>
+  </div>
+  <div class="btn-group">
+    <a href="{{ url_for('scores.question_list', eid=exam.id) }}" class="btn btn-outline-primary">
+      <i class="bi bi-list-ol"></i> 题目列表
+    </a>
+    <a href="{{ url_for('scores.overview', eid=exam.id) }}" class="btn btn-link">← 总览</a>
+  </div>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  <b>得分率</b>＝平均分÷满分。<b>区分度</b>用高低分组差异法计算（前1/3均分 − 后1/3均分）÷满分，>0.4 为优秀题，0.2~0.4 为合格题，&lt;0.2 区分度不足。<b>易错题</b>＝得分率&lt;60%。
+</div>
+
+{% if easy_errors %}
+<div class="card border-danger shadow-sm mb-3">
+  <div class="card-header bg-danger text-white"><i class="bi bi-exclamation-triangle"></i> 易错题预警 ({{ easy_errors|length }}题)</div>
+  <div class="card-body">
+    <ul class="list-unstyled mb-0">
+      {% for r in easy_errors %}
+        <li>
+          <span class="badge bg-info">{{ subject_label.get(r.question.subject, r.question.subject) }}</span>
+          第 <b>{{ r.question.question_no }}</b> 题
+          {% if r.question.knowledge_points %}<small class="text-muted">知识点：{{ r.question.knowledge_points }}</small>{% endif %}
+          — 得分率 <b class="text-danger">{{ r.rate }}%</b>，均分 {{ r.avg }}/{{ r.question.full_score|score1 }}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{{ chart_container('rate-bar', '各题得分率', 380) }}
+
+<div class="card shadow-sm">
+  <div class="card-header"><i class="bi bi-table"></i> 题目质量统计</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>科目</th><th>题号</th><th>题型</th><th>满分</th>
+            <th>录分人数</th><th>均分</th><th>得分率</th>
+            <th>标准差</th><th>区分度</th><th>评估</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in report %}
+            <tr>
+              <td><span class="badge bg-info">{{ subject_label.get(r.question.subject, r.question.subject) }}</span></td>
+              <td>{{ r.question.question_no }}</td>
+              <td>{{ r.question.question_type or '—' }}</td>
+              <td>{{ r.question.full_score|score1 }}</td>
+              <td>{{ r.n }}</td>
+              {% if r.avg is not none %}
+                <td>{{ r.avg }}</td>
+                <td>
+                  <span class="badge {% if r.rate >= 80 %}bg-success{% elif r.rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}">{{ r.rate }}%</span>
+                </td>
+                <td>{{ r.std }}</td>
+                <td>
+                  <span class="badge {% if r.discrim >= 0.4 %}bg-success{% elif r.discrim >= 0.2 %}bg-warning{% else %}bg-danger{% endif %}">{{ r.discrim }}</span>
+                </td>
+                <td>
+                  {% if r.easy_error %}<span class="badge bg-danger">易错题</span>{% endif %}
+                  {% if r.discrim >= 0.4 %}<span class="badge bg-success">区分度优</span>{% endif %}
+                  {% if r.discrim < 0.2 and r.n > 0 %}<span class="badge bg-warning">区分度低</span>{% endif %}
+                </td>
+              {% else %}
+                <td colspan="6" class="text-center text-muted">未录分</td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>
+  const rateData = [
+    {% for r in report if r.avg is not none %}
+    {
+      name: "{{ subject_label.get(r.question.subject, r.question.subject) }}-{{ r.question.question_no }}",
+      rate: {{ r.rate }},
+      discrim: {{ r.discrim }},
+      full: {{ r.question.full_score }},
+      avg: {{ r.avg }},
+    },
+    {% endfor %}
+  ];
+  const rateChart = echarts.init(document.getElementById('rate-bar'));
+  rateChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['得分率%', '区分度'] },
+    grid: { left: 50, right: 30, bottom: 80 },
+    xAxis: {
+      type: 'category',
+      data: rateData.map(d => d.name),
+      axisLabel: { rotate: 45 }
+    },
+    yAxis: [
+      { type: 'value', name: '得分率%', max: 100 },
+      { type: 'value', name: '区分度', max: 1 }
+    ],
+    series: [
+      {
+        name: '得分率%',
+        type: 'bar',
+        data: rateData.map(d => ({
+          value: d.rate,
+          itemStyle: { color: d.rate >= 80 ? '#28a745' : (d.rate >= 60 ? '#ffc107' : '#dc3545') }
+        })),
+        markline: { data: [{ yAxis: 60, name: '及格线' }] }
+      },
+      {
+        name: '区分度',
+        type: 'line',
+        yAxisIndex: 1,
+        data: rateData.map(d => d.discrim),
+        lineStyle: { color: '#17a2b8' },
+        itemStyle: { color: '#17a2b8' }
+      }
+    ]
+  });
+  window.addEventListener('resize', () => rateChart.resize());
+</script>
+{% endblock %}
+{% endblock %}

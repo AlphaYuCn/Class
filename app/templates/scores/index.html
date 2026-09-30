@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}成绩分析{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-bar-chart-line-fill"></i> 成绩分析</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('scores.class_trend') }}" class="btn btn-outline-info">
+      <i class="bi bi-graph-up-arrow"></i> 班级趋势
+    </a>
+    <a href="{{ url_for('scores.goal_list') }}" class="btn btn-outline-warning">
+      <i class="bi bi-bullseye"></i> 目标成绩
+    </a>
+    <a href="{{ url_for('scores.ranking') }}" class="btn btn-outline-success">
+      <i class="bi bi-trophy"></i> 进步/退步榜
+    </a>
+    <a href="{{ url_for('scores.template') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-download"></i> 下载成绩单模板
+    </a>
+    <a href="{{ url_for('scores.upload') }}" class="btn btn-primary">
+      <i class="bi bi-upload"></i> 上传成绩单
+    </a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header">考试列表</div>
+  <div class="card-body p-0">
+    {% if exams %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>考试名称</th><th>考试日期</th><th>学年/月</th>
+            <th>参与人数</th><th class="text-end">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in exams %}
+          <tr>
+            <td><b>{{ e.name }}</b></td>
+            <td>{{ e.exam_date|date_cn }}</td>
+            <td>{{ e.year }} 学年 / {{ e.month }} 月</td>
+            <td><span class="badge bg-primary">{{ count_map.get(e.id, 0) }} 人</span></td>
+            <td class="text-end">
+              <a href="{{ url_for('scores.overview', eid=e.id) }}" class="btn btn-sm btn-outline-primary">
+                查看分析 →
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-inbox" style="font-size:3rem"></i>
+      <p class="mt-3">暂无考试数据，请先 <a href="{{ url_for('students.upload') }}">上传学生名单</a>，再上传成绩单。</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# 成绩智能预警 #}
+{% if alerts.consecutive_drop or alerts.subject_slump %}
+<div class="row g-3 mt-1">
+  {% if alerts.consecutive_drop %}
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-danger">
+      <div class="card-header bg-danger text-white">
+        <i class="bi bi-exclamation-triangle"></i> 连续退步预警
+        <span class="badge bg-light text-danger ms-1">{{ alerts.consecutive_drop|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr><th>姓名</th><th>排名变化</th><th>总分 Δ</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              {% for d in alerts.consecutive_drop %}
+              <tr>
+                <td>{{ d.name }}</td>
+                <td><small>
+                  {% for i in range(d.ranks|length) %}
+                  <span class="badge {% if i == 0 %}bg-success{% elif i == d.ranks|length - 1 %}bg-danger{% else %}bg-warning{% endif %}">{{ d.ranks[i] }}</span>
+                  {% if not loop.last %}→{% endif %}
+                  {% endfor %}
+                  <small class="text-muted">({{ d.exam_names[0] }}→{{ d.exam_names[-1] }})</small>
+                </small></td>
+                <td>
+                  {% if d.total_delta is not none %}
+                  <span class="text-danger">{{ d.total_delta }}</span>
+                  {% else %}-{% endif %}
+                </td>
+                <td>
+                  {% if alerts.exams %}
+                  <a href="{{ url_for('scores.detail', eid=alerts.exams[-1].id, sid=d.student_id) }}"
+                     class="btn btn-sm btn-outline-danger">详情</a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if alerts.subject_slump %}
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-warning">
+      <div class="card-header bg-warning text-dark">
+        <i class="bi bi-graph-down-arrow"></i> 单科大幅下滑（≤-15分）
+        <span class="badge bg-light text-warning ms-1">{{ alerts.subject_slump|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr><th>姓名</th><th>科目</th><th>上次</th><th>本次</th><th>Δ</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              {% for s in alerts.subject_slump %}
+              <tr>
+                <td>{{ s.name }}</td>
+                <td><span class="badge bg-secondary">{{ s.label }}</span></td>
+                <td>{{ s.prev_score|score1 }}</td>
+                <td>{{ s.cur_score|score1 }}</td>
+                <td><span class="text-danger">{{ s.delta }}</span></td>
+                <td>
+                  {% if alerts.exams %}
+                  <a href="{{ url_for('scores.detail', eid=alerts.exams[-1].id, sid=s.student_id) }}"
+                     class="btn btn-sm btn-outline-warning">详情</a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="alert alert-info mt-3 small">
+  <i class="bi bi-info-circle"></i>
+  每次上传的成绩按考试日期自动保存为一次考试。再上传新成绩，系统会自动与上一次考试进行对比，并在个人下钻页显示升降与学科建议。
+</div>
+{% endblock %}

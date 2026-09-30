@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}学生荣誉墙{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-trophy"></i> 学生荣誉墙</h2>
+  <div class="btn-group">
+    <a href="?level=all" class="btn btn-sm {% if level=='all' %}btn-primary{% else %}btn-outline-primary{% endif %}">全部</a>
+    {% for k, v in level_choices.items() %}
+      <a href="?level={{ k }}" class="btn btn-sm {% if level==k %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ v }}</a>
+    {% endfor %}
+    <a href="{{ url_for('daily.index') }}" class="btn btn-link">← 日常</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-plus-circle"></i> 登记新荣誉</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('daily.honor_new') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <label class="form-label">学生 <span class="text-danger">*</span></label>
+            <select name="student_id" class="form-select" required>
+              <option value="">— 选择学生 —</option>
+              {% for s in students %}
+                <option value="{{ s.id }}">{{ s.name }} ({{ s.student_no }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">荣誉名称 <span class="text-danger">*</span></label>
+            <input type="text" name="title" class="form-control" placeholder="如：三好学生、单科状元" required>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">级别</label>
+              <select name="level" class="form-select">
+                {% for k, v in level_choices.items() %}
+                  <option value="{{ k }}">{{ v }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">颁奖日期</label>
+              <input type="date" name="awarded_at" value="{{ today }}" class="form-control">
+            </div>
+          </div>
+          <div class="mb-2 mt-2">
+            <label class="form-label">颁奖单位</label>
+            <input type="text" name="org" class="form-control" placeholder="如：学校、市教育局">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">描述</label>
+            <textarea name="description" rows="2" class="form-control"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 登记</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-trophy-fill"></i> 荣誉记录 ({{ honors|length }})</div>
+      <div class="card-body">
+        {% if honors %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>学生</th><th>荣誉</th><th>级别</th>
+                  <th>颁奖日期</th><th>颁奖单位</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for h in honors %}
+                  <tr>
+                    <td><a href="{{ url_for('students.profile', sid=h.student_id) }}">{{ h.student.name }}</a></td>
+                    <td><b>{{ h.title }}</b>
+                      {% if h.description %}<div class="small text-muted">{{ h.description }}</div>{% endif %}
+                    </td>
+                    <td>
+                      <span class="badge {% if h.level == 'class' %}bg-secondary{% elif h.level == 'grade' %}bg-info{% elif h.level == 'school' %}bg-primary{% else %}bg-danger{% endif %}">
+                        {{ h.level_label() }}
+                      </span>
+                    </td>
+                    <td>{{ h.awarded_at|date_cn }}</td>
+                    <td>{{ h.org or '—' }}</td>
+                    <td>
+                      <a href="{{ url_for('daily.honor_certificate', hid=h.id) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <i class="bi bi-award"></i> 证书
+                      </a>
+                      <form method="post" action="{{ url_for('daily.honor_delete', hid=h.id) }}" class="d-inline" onsubmit="return confirm('确认删除？');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-trophy" style="font-size:3rem;"></i>
+            <p class="mt-2">暂无荣誉记录</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

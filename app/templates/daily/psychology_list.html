@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}心理健康观察{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-clipboard-heart"></i> 心理健康观察记录</h2>
+  <div class="btn-group">
+    <a href="?level=all" class="btn btn-sm {% if level=='all' %}btn-primary{% else %}btn-outline-primary{% endif %}">全部</a>
+    {% for k, v in level_choices.items() %}
+      <a href="?level={{ k }}" class="btn btn-sm {% if level==k %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ v }}</a>
+    {% endfor %}
+    <a href="{{ url_for('daily.index') }}" class="btn btn-link">← 日常</a>
+  </div>
+</div>
+
+{% if warning_students %}
+<div class="card border-warning shadow-sm mb-3">
+  <div class="card-header bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> 关注名单 ({{ warning_students|length }} 人)</div>
+  <div class="card-body">
+    <ul class="list-unstyled mb-0">
+      {% for w in warning_students %}
+        <li class="mb-1">
+          <a href="{{ url_for('students.profile', sid=w.student.id) }}"><b>{{ w.student.name }}</b></a>
+          ({{ w.student.student_no }})
+          <span class="badge {% if w.latest.concern_level == 'warning' %}bg-danger{% else %}bg-warning{% endif %}">
+            {{ w.latest.level_label() }}
+          </span>
+          — 最近观察：{{ w.latest.observe_date|date_cn }}
+          {% if w.need_followup %}
+            <span class="badge bg-danger ms-2"><i class="bi bi-clock"></i> 需回访（{{ w.latest.followup_date|date_cn }}）</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-plus-circle"></i> 新增观察记录</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('daily.psychology_new') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <label class="form-label">学生 <span class="text-danger">*</span></label>
+            <select name="student_id" class="form-select" required>
+              <option value="">— 选择学生 —</option>
+              {% for s in students %}
+                <option value="{{ s.id }}">{{ s.name }} ({{ s.student_no }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">观察日期</label>
+              <input type="date" name="observe_date" value="{{ today }}" class="form-control">
+            </div>
+            <div class="col-6">
+              <label class="form-label">关注级别</label>
+              <select name="concern_level" class="form-select">
+                {% for k, v in level_choices.items() %}
+                  <option value="{{ k }}">{{ v }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="mb-2 mt-2">
+            <label class="form-label">情绪状态</label>
+            <input type="text" name="mood" class="form-control" placeholder="如：低落、亢奋、平静">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">行为描述</label>
+            <textarea name="behavior" rows="2" class="form-control"></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">下次回访日期</label>
+            <input type="date" name="followup_date" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">备注</label>
+            <textarea name="note" rows="2" class="form-control"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 保存</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-list-columns"></i> 观察记录 ({{ records|length }})</div>
+      <div class="card-body">
+        {% if records %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>学生</th><th>日期</th><th>情绪</th>
+                  <th>行为</th><th>级别</th><th>下次回访</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in records %}
+                  <tr>
+                    <td><a href="{{ url_for('students.profile', sid=p.student_id) }}">{{ p.student.name }}</a></td>
+                    <td>{{ p.observe_date|date_cn }}</td>
+                    <td>{{ p.mood or '—' }}</td>
+                    <td><small>{{ p.behavior or '—' }}</small></td>
+                    <td>
+                      <span class="badge {% if p.concern_level == 'normal' %}bg-success{% elif p.concern_level == 'attention' %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ p.level_label() }}
+                      </span>
+                    </td>
+                    <td>
+                      {% if p.followup_date %}
+                        {{ p.followup_date|date_cn }}
+                        {% if p.followup_date <= today %}<span class="badge bg-danger">需回访</span>{% endif %}
+                      {% else %}—{% endif %}
+                    </td>
+                    <td>
+                      <form method="post" action="{{ url_for('daily.psychology_delete', pid=p.id) }}" class="d-inline" onsubmit="return confirm('确认删除？');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-clipboard-heart" style="font-size:3rem;"></i>
+            <p class="mt-2">暂无观察记录</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

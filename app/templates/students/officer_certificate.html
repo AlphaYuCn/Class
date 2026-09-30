@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}任职证明 - {{ o.student.name }}{% endblock %}
+{% block content %}
+<style>
+@media print {
+  body * { visibility: hidden; }
+  #certificate, #certificate * { visibility: visible; }
+  #certificate { position: absolute; left: 0; top: 0; width: 100%; }
+}
+</style>
+<div class="container" style="max-width:780px;">
+  <div class="card shadow">
+    <div class="card-body p-5" id="certificate" style="background:#fffef8;">
+      <div class="text-center mb-4">
+        <h1 class="fw-bold" style="letter-spacing:6px;">任职证明</h1>
+        <div class="text-muted small mt-2">伊通一中教务处</div>
+      </div>
+      <hr>
+      <div class="my-4" style="font-size:1.1rem;line-height:2;">
+        <p>
+          兹证明 <b>{{ o.student.name }}</b>
+          同学（学号：{{ o.student.student_no }}），
+          自 <b>{{ o.start_date|date_cn }}</b> 起
+          {% if o.end_date %}至 <b>{{ o.end_date|date_cn }}</b> 止{% endif %}
+          担任本班 <b class="text-primary">{{ o.position }}</b> 职务。
+        </p>
+        {% if o.note %}<p>备注：{{ o.note }}</p>{% endif %}
+        <p class="mt-4">特此证明。</p>
+      </div>
+      <div class="d-flex justify-content-end mt-5">
+        <div class="text-end">
+          <div>班主任签字：________________</div>
+          <div class="mt-3">伊通一中教务处（盖章）</div>
+          <div class="mt-2">{{ today|date_cn }}</div>
+        </div>
+      </div>
+      <hr>
+      <div class="text-center text-muted small">
+        {% if o.status == 'active' %}在任{% else %}已离任{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="text-center mt-3">
+    <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer"></i> 打印 / 另存为 PDF</button>
+    <a href="{{ url_for('students.officer_list') }}" class="btn btn-link">返回列表</a>
+  </div>
+</div>
+{% endblock %}

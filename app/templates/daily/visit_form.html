@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}新增家访记录{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-plus-circle"></i> 新增家访记录</h2>
+  <a href="{{ url_for('daily.visit_list') }}" class="btn btn-link">← 返回列表</a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">学生 <span class="text-danger">*</span></label>
+          <select name="student_id" class="form-select" required>
+            <option value="">— 选择学生 —</option>
+            {% for s in students %}
+              <option value="{{ s.id }}">{{ s.name }} ({{ s.student_no }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">家访日期</label>
+          <input type="date" name="visit_date" value="{{ today }}" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">陪同人</label>
+          <input type="text" name="accompany" class="form-control" placeholder="如：副班主任、年级组长">
+        </div>
+        <div class="col-12">
+          <label class="form-label">家庭情况</label>
+          <textarea name="home_situation" rows="3" class="form-control" placeholder="家庭住址、家庭成员、经济状况、家庭教育氛围等"></textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label">家长态度</label>
+          <textarea name="parent_attitude" rows="2" class="form-control" placeholder="配合程度、对学习的关注度等"></textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label">家访内容</label>
+          <textarea name="content" rows="4" class="form-control" placeholder="交流内容、达成的共识、提出的问题等"></textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label">后续跟进</label>
+          <textarea name="followup" rows="2" class="form-control" placeholder="下一步计划、需要班主任注意的事项"></textarea>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-save"></i> 保存</button>
+      <a href="{{ url_for('daily.visit_list') }}" class="btn btn-link mt-3">取消</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

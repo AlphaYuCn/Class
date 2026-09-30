@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}{{ exam.name }} 成绩总览{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-graph-up"></i> {{ exam.name }}</h2>
+    <div class="text-muted small">考试日期 {{ exam.exam_date|date_cn }} · 共 {{ records|length }} 人参与
+      {% if prev_exam %}· <a href="{{ url_for('scores.overview', eid=prev_exam.id) }}">上次考试: {{ prev_exam.name }}</a>{% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('scores.question_list', eid=exam.id) }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-list-ol"></i> 试卷逐题分析
+    </a>
+    <a href="{{ url_for('scores.knowledge_analysis', eid=exam.id) }}" class="btn btn-outline-info btn-sm">
+      <i class="bi bi-diagram-3"></i> 知识点掌握度
+    </a>
+    <a href="{{ url_for('scores.contribution_analysis', eid=exam.id) }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-bar-chart-line"></i> 学科贡献度
+    </a>
+    <a href="{{ url_for('scores.benchmark_analysis', eid=exam.id) }}" class="btn btn-outline-warning btn-sm">
+      <i class="bi bi-bullseye"></i> 年级对标
+    </a>
+    <a href="{{ url_for('scores.balance', eid=exam.id) }}" class="btn btn-outline-info btn-sm">
+      <i class="bi bi-pie-chart"></i> 学科均衡度
+    </a>
+    <a href="{{ url_for('scores.index') }}" class="btn btn-link">← 返回考试列表</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-2">
+  <div class="col-md-3"><div class="card bg-primary text-white"><div class="card-body">
+    <div class="text-uppercase small">参考人数</div>
+    <div class="display-6">{{ records|length }}</div>
+  </div></div></div>
+  {% set totals = records | map(attribute='total') | select('ne', none) | list %}
+  {% if totals %}
+  <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body">
+    <div class="text-uppercase small">平均总分</div>
+    <div class="display-6">{{ (totals | sum / (totals | length)) | score1 }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card bg-info text-white"><div class="card-body">
+    <div class="text-uppercase small">最高分</div>
+    <div class="display-6">{{ totals | max | score1 }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card bg-warning text-white"><div class="card-body">
+    <div class="text-uppercase small">最低分</div>
+    <div class="display-6">{{ totals | min | score1 }}</div>
+  </div></div></div>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    {{ chart_container('histogram', '班级分数分布直方图（10 分一档）') }}
+  </div>
+  <div class="col-lg-5">
+    {{ chart_container('subject-bar', '各科平均分对比') }}
+  </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header">分数段统计</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+          <tr><th>分数段</th><th>人数</th><th>占比</th><th>分布</th></tr>
+        </thead>
+        <tbody>
+          {% for s in segs %}
+          {% if s.count %}
+          <tr>
+            <td>{{ s.range }}</td>
+            <td>{{ s.count }}</td>
+            <td>{{ (s.count / (records|length) * 100) | round(1) }}%</td>
+            <td>
+              <div class="progress" style="height:6px;min-width:200px">
+                <div class="progress-bar bg-primary"
+                     style="width: {{ (s.count / (records|length) * 100) | round(1) }}%"></div>
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header d-flex justify-content-between">
+    <span>学生成绩表（按班级排名）</span>
+    <span class="small text-muted">点击姓名进入个人下钻分析</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>年级排名</th><th>班排</th><th>姓名</th><th>学号</th><th>总分</th>
+            <th>语文</th><th>数学</th><th>英语</th><th>物理</th>
+            <th>化学</th><th>生物</th><th>政治</th><th>历史</th><th>地理</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          <tr>
+            <td><span class="badge bg-warning">{{ r.grade_rank if r.grade_rank is not none else r.class_rank }}</span></td>
+            <td><small class="text-muted">{{ r.class_rank or '' }}</small></td>
+            <td>
+              <a href="{{ url_for('scores.detail', eid=exam.id, sid=r.student_id) }}"
+                 class="text-decoration-none fw-bold">{{ r.student.name }}</a>
+            </td>
+            <td><small class="text-muted">{{ r.student.student_no }}</small></td>
+            <td><b>{{ r.total|score1 }}</b></td>
+            <td>{{ r.chinese|score1 }}</td>
+            <td>{{ r.math|score1 }}</td>
+            <td>{{ r.english|score1 }}</td>
+            <td>{{ r.physics|score1 }}</td>
+            <td>{{ r.chemistry|score1 }}</td>
+            <td>{{ r.biology|score1 }}</td>
+            <td>{{ r.politics|score1 }}</td>
+            <td>{{ r.history|score1 }}</td>
+            <td>{{ r.geography|score1 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const EXAM_ID = {{ exam.id }};
+  if (window.initHistogram) initHistogram(EXAM_ID);
+  if (window.initSubjectBar) initSubjectBar(EXAM_ID);
+</script>
+{% endblock %}

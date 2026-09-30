@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}荣誉证书 - {{ h.student.name }} - {{ h.title }}{% endblock %}
+{% block content %}
+<style>
+@media print {
+  body * { visibility: hidden; }
+  #certificate, #certificate * { visibility: visible; }
+  #certificate { position: absolute; left: 0; top: 0; width: 100%; }
+}
+</style>
+<div class="container" style="max-width:780px;">
+  <div class="card shadow">
+    <div class="card-body p-5 text-center" id="certificate" style="background:#fffef8;">
+      <div class="display-5 fw-bold mb-1" style="letter-spacing:8px;">荣誉证书</div>
+      <div class="text-muted small">Certificate of Honor</div>
+      <hr class="my-4">
+      <div style="font-size:1.2rem;line-height:2;">
+        兹证明 <b class="text-primary" style="font-size:1.4rem;">{{ h.student.name }}</b>
+        同学（学号：{{ h.student.student_no }}）
+      </div>
+      <div class="my-4">
+        在 <b>{{ h.awarded_at|date_cn }}</b> 荣获
+        <span class="badge bg-primary" style="font-size:1.1rem;">{{ h.level_label() }}</span>
+        <div class="my-3"><b style="font-size:1.6rem;color:#c0392b;letter-spacing:4px;">「{{ h.title }}」</b></div>
+        {% if h.org %}<div>颁奖单位：{{ h.org }}</div>{% endif %}
+      </div>
+      {% if h.description %}
+      <div class="text-muted small mb-3">{{ h.description }}</div>
+      {% endif %}
+      <div class="my-4" style="font-size:1rem;">特此表彰，以资鼓励。</div>
+      <hr class="my-4">
+      <div class="d-flex justify-content-between">
+        <div>班主任签字：________________</div>
+        <div class="text-end">
+          <div>伊通一中教务处（盖章）</div>
+          <div class="mt-2">{{ today|date_cn }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="text-center mt-3">
+    <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer"></i> 打印 / 另存为 PDF</button>
+    <a href="{{ url_for('daily.honor_list') }}" class="btn btn-link">返回荣誉墙</a>
+  </div>
+</div>
+{% endblock %}

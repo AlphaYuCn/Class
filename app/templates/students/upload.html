@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}上传学生名单{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-upload"></i> 上传学生名单</h2>
+  <a href="{{ url_for('students.template') }}" class="btn btn-outline-primary">
+    <i class="bi bi-download"></i> 下载模板
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {{ form.csrf_token if form else '' }}
+      <div class="mb-3">
+        <label class="form-label">选择 Excel 文件</label>
+        <input type="file" name="file" accept=".xlsx,.xls" class="form-control" required>
+        <div class="form-text">支持 .xlsx 格式, 表头需包含 学号/姓名 两列; 性别填 M/F 或 男/女</div>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-circle"></i> 开始上传
+      </button>
+      <a href="{{ url_for('students.list_') }}" class="btn btn-link">返回</a>
+    </form>
+  </div>
+</div>
+
+<div class="card mt-3 bg-light">
+  <div class="card-body">
+    <h6 class="card-title"><i class="bi bi-info-circle"></i> 模板列说明</h6>
+    <ul class="small mb-0 text-muted">
+      <li><b>学号</b>(必填): 唯一标识, 已存在则更新</li>
+      <li><b>姓名</b>(必填)</li>
+      <li><b>性别</b>: M/F 或 男/女</li>
+      <li><b>民族</b>: 默认汉族</li>
+      <li><b>出生日期</b>: YYYY-MM-DD 或 Excel 日期, 自动计算星座</li>
+      <li><b>身高</b>: 数字, 单位 cm</li>
+      <li><b>身份证号</b>: 可空</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

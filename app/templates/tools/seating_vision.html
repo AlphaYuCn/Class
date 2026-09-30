@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}视力/身高排座建议{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-grid-3x3"></i> 视力/身高排座建议</h2>
+  <a href="{{ url_for('tools.seating') }}" class="btn btn-link"><i class="bi bi-arrow-left"></i> 返回智能排座</a>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  排序规则：<b>视力差的学生优先排到前排</b>（视力低优先），<b>身高矮的学生优先排到前排</b>。
+  <br>视力数据来自体检记录；无体检数据的学生视为中等视力（1.0）。
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card text-white bg-info shadow-sm"><div class="card-body">
+      <div class="small">学生总数</div><div class="display-6">{{ total }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-warning shadow-sm"><div class="card-body">
+      <div class="small">视力预警人数（单眼&lt;1.0）</div><div class="display-6">{{ poor_vision }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-secondary shadow-sm"><div class="card-body">
+      <div class="small">无体检数据</div><div class="display-6">{{ no_vision }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm"><div class="card-body">
+      <div class="small text-muted">建议布局</div><div class="display-6">{{ rows }}×{{ cols }}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header bg-primary text-white"><i class="bi bi-grid-3x3"></i> 建议座位表（按视力差+身高矮优先排前）</div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered text-center align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width:60px;">行↓</th>
+            {% for c in range(cols) %}<th>列 {{ c+1 }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in range(rows) %}
+          <tr>
+            <td class="table-light"><b>第 {{ r+1 }} 排</b></td>
+            {% for c in range(cols) %}
+              {% set s = grid[r][c] %}
+              <td>
+                {% if s %}
+                  <div><b>{{ s.name }}</b></div>
+                  <div class="small text-muted">{{ s.student_no }}</div>
+                {% else %}
+                  <span class="text-muted">空</span>
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="text-muted small mt-2">提示：第1排（最前）为视力/身高最优的学生；最后一排为身高较高、视力较好的学生。</div>
+  </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header"><i class="bi bi-list-ol"></i> 排序明细</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr><th>#</th><th>学号</th><th>姓名</th><th>视力(低)</th><th>身高</th><th>是否有体检</th></tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ it.student.student_no }}</td>
+            <td>{{ it.student.name }}</td>
+            <td>
+              {% if it.vision is not none %}
+                <span class="badge {% if it.vision < 1.0 %}bg-danger{% elif it.vision < 1.5 %}bg-warning{% else %}bg-success{% endif %}">{{ it.vision }}</span>
+              {% else %}<span class="text-muted">未检</span>{% endif %}
+            </td>
+            <td>{{ it.height if it.height else '—' }}</td>
+            <td>
+              {% if it.has_data %}<span class="badge bg-success">有</span>{% else %}<span class="badge bg-secondary">无</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

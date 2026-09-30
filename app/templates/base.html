@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}伊通一中班级管理系统{% endblock %}</title>
+    <link href="https://cdn.staticfile.net/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.staticfile.net/bootstrap-icons/1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.font.im/css?family=Noto+Sans+SC:400,500,700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
+    {% block head %}{% endblock %}
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+  <div class="container">
+    <a class="navbar-brand" href="{{ url_for('main.index') }}">
+      <i class="bi bi-mortarboard-fill"></i>
+      <span>班级管理系统</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('main.index') }}">首页</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('students.list_') }}">学生档案</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('scores.index') }}">成绩分析</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('daily.index') }}">日常管理</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#">常用工具</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{{ url_for('tools.seating') }}"><i class="bi bi-grid-3x3"></i> 智能排座</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('tools.seating_vision') }}"><i class="bi bi-eye"></i> 视力身高排座</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{{ url_for('tools.duty') }}"><i class="bi bi-people-fill"></i> 值日排程</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('tools.duty_checklist') }}"><i class="bi bi-list-check"></i> 值日检查清单</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('tools.duty_check_list') }}"><i class="bi bi-clock-history"></i> 检查记录</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{{ url_for('tools.fee') }}"><i class="bi bi-cash-coin"></i> 班费管理</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('tools.fee_budget') }}"><i class="bi bi-wallet2"></i> 班费预算</a></li>
+
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{{ url_for('tools.meeting_list') }}"><i class="bi bi-people"></i> 家长会工具</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat if cat != 'danger' else 'danger' }} alert-dismissible fade show">
+          <i class="bi {% if cat == 'success' %}bi-check-circle{% elif cat == 'danger' %}bi-exclamation-octagon{% elif cat == 'warning' %}bi-exclamation-triangle{% else %}bi-info-circle{% endif %} me-2"></i>
+          {{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+
+<footer class="text-center text-muted small py-4 mt-4 border-top">
+  <span class="opacity-75">班级管理系统 · 伊通一中教务处</span>
+</footer>
+
+<script src="https://cdn.staticfile.net/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.staticfile.net/echarts/5.4.3/echarts.min.js"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

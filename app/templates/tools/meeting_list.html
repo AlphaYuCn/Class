@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}家长会管理{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-people"></i> 家长会管理</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('tools.meeting_new') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> 新建家长会
+    </a>
+    <a href="{{ url_for('tools.seating') }}" class="btn btn-link">← 工具首页</a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if meetings %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>日期</th><th>主题</th><th>学期</th>
+              <th>签到人数</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in meetings %}
+            <tr>
+              <td>{{ m.held_at|date_cn }}</td>
+              <td><a href="{{ url_for('tools.meeting_detail', mid=m.id) }}">{{ m.title }}</a></td>
+              <td>{{ m.term or '—' }}</td>
+              <td>
+                <span class="badge bg-success">{{ count_map.get(m.id, 0) }} 人</span>
+              </td>
+              <td>
+                <a href="{{ url_for('tools.meeting_detail', mid=m.id) }}" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye"></i> 详情/签到
+                </a>
+                <form method="post" action="{{ url_for('tools.meeting_delete', mid=m.id) }}" class="d-inline" onsubmit="return confirm('确认删除此家长会？');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center text-muted py-5">
+        <i class="bi bi-people" style="font-size:3rem;"></i>
+        <p class="mt-2">暂无家长会记录</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

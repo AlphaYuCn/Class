@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}班级日常统计{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-pie-chart-fill"></i> 班级日常统计</h2>
+    <div class="text-muted small">
+      本月（{{ month_start|date_cn }} 至 {{ month_end|date_cn }}，{{ workdays }} 个工作日）
+      · <a href="{{ url_for('daily.index') }}">← 学生列表</a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    {{ chart_container('daily-pie', '本月记录类型分布', 360) }}
+  </div>
+  <div class="col-lg-7">
+    <div class="row g-3">
+      <div class="col-12">
+        {{ chart_container('daily-punish', '本月违纪 Top10', 240) }}
+      </div>
+      <div class="col-12">
+        {{ chart_container('daily-praise', '本月表扬 Top10', 240) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-md-6">
+    <div class="card shadow-sm border-danger h-100">
+      <div class="card-header bg-danger text-white">违纪榜 Top{{ punish_top|length }}</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light"><tr><th>#</th><th>姓名</th><th>学号</th><th>本月违纪</th></tr></thead>
+            <tbody>
+              {% for item in punish_top %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td><a href="{{ url_for('daily.student_page', sid=item.student.id) }}">{{ item.student.name }}</a></td>
+                <td><small class="text-muted">{{ item.student.student_no }}</small></td>
+                <td><span class="badge bg-danger">{{ item.count }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-center text-muted py-3">本月无违纪记录 🎉</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm border-success h-100">
+      <div class="card-header bg-success text-white">表扬榜 Top{{ praise_top|length }}</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light"><tr><th>#</th><th>姓名</th><th>学号</th><th>本月表扬</th></tr></thead>
+            <tbody>
+              {% for item in praise_top %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td><a href="{{ url_for('daily.student_page', sid=item.student.id) }}">{{ item.student.name }}</a></td>
+                <td><small class="text-muted">{{ item.student.student_no }}</small></td>
+                <td><span class="badge bg-success">{{ item.count }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-center text-muted py-3">本月尚无表扬记录</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">本月各类型汇总</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>类型</th><th>本月条数</th></tr></thead>
+            <tbody>
+              {% for code, label in type_choices.items() %}
+              <tr>
+                <td>{{ label }}</td>
+                <td><span class="badge bg-primary">{{ type_counts.get(code, 0) }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card shadow-sm border-warning">
+      <div class="card-header bg-warning text-white">
+        <i class="bi bi-exclamation-triangle"></i> 重复违纪预警（本月违纪≥3次）
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr><th>#</th><th>姓名</th><th>学号</th><th>违纪次数</th><th>明细</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              {% for w in warning_list %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td><a href="{{ url_for('daily.student_page', sid=w.student.id) }}">{{ w.student.name }}</a></td>
+                <td><small class="text-muted">{{ w.student.student_no }}</small></td>
+                <td><span class="badge bg-danger">{{ w.count }}</span></td>
+                <td>
+                  {% for k, v in w.details.items() %}
+                  {% if v > 0 %}
+                  <span class="badge bg-secondary me-1">
+                    {{ type_choices.get(k, k) }}: {{ v }}
+                  </span>
+                  {% endif %}
+                  {% endfor %}
+                </td>
+                <td>
+                  <a href="{{ url_for('daily.comment', sid=w.student.id) }}"
+                     class="btn btn-sm btn-outline-warning">
+                    <i class="bi bi-chat-square-text"></i> 撰写评语
+                  </a>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-center text-muted py-3">本月无重复违纪学生 🎉</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card shadow-sm border-info">
+      <div class="card-header bg-info text-white">
+        <i class="bi bi-calendar-check"></i> 本月出勤率（按低到高排序，关注后进）
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr><th>排名</th><th>姓名</th><th>学号</th>
+                  <th>迟到</th><th>请假</th><th>违纪</th>
+                  <th>缺席天数</th><th>出勤率</th></tr>
+            </thead>
+            <tbody>
+              {% for a in attendance_list[:15] %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td><a href="{{ url_for('daily.student_page', sid=a.student.id) }}">{{ a.student.name }}</a></td>
+                <td><small class="text-muted">{{ a.student.student_no }}</small></td>
+                <td>{{ a.late }}</td>
+                <td>{{ a.leave }}</td>
+                <td>{{ a.discipline }}</td>
+                <td>{{ '%.1f'|format(a.absence) }} 天</td>
+                <td>
+                  {% if a.rate >= 95 %}
+                  <span class="badge bg-success">{{ '%.1f'|format(a.rate) }}%</span>
+                  {% elif a.rate >= 85 %}
+                  <span class="badge bg-warning">{{ '%.1f'|format(a.rate) }}%</span>
+                  {% else %}
+                  <span class="badge bg-danger">{{ '%.1f'|format(a.rate) }}%</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if attendance_list|length > 15 %}
+        <div class="text-muted small p-2">仅显示后 15 名, 全班共 {{ attendance_list|length }} 人</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (window.initDailyPie) initDailyPie();
+  if (window.initDailyPunish) initDailyPunish();
+  if (window.initDailyPraise) initDailyPraise();
+</script>
+{% endblock %}

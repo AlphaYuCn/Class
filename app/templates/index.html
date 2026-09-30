@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}伊通一中班级管理系统 - 首页{% endblock %}
+{% block content %}
+<div class="text-center hero-block">
+  <h1 class="display-5"><i class="bi bi-mortarboard-fill"></i> 伊通一中班级管理系统</h1>
+  <p class="text-muted mb-0">学生档案 · 成绩分析 · 日常管理 · 智能排座 · 值日排程</p>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 g-4 mb-5">
+  <div class="col">
+    <a href="{{ url_for('students.list_') }}" class="text-decoration-none text-reset">
+      <div class="card h-100 shadow-sm module-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="display-4 me-3"><i class="bi bi-person-vcard"></i></div>
+            <div>
+              <h4 class="card-title mb-1">学生基本信息</h4>
+              <p class="card-text text-muted small mb-0">上传名单 / 学生档案 / 编辑信息 / 奖惩记录</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent">
+          <span class="badge bg-primary">{{ stats.student_count }} 名学生</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col">
+    <a href="{{ url_for('scores.index') }}" class="text-decoration-none text-reset">
+      <div class="card h-100 shadow-sm module-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="display-4 me-3"><i class="bi bi-bar-chart-line-fill"></i></div>
+            <div>
+              <h4 class="card-title mb-1">成绩信息分析</h4>
+              <p class="card-text text-muted small mb-0">直方图 / 科目对比 / 个人雷达 / 升降建议</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent">
+          <span class="badge bg-success">{{ stats.exam_count }} 次考试</span>
+          {% if latest_exam %}
+            <span class="text-muted small">最近: {{ latest_exam.name }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col">
+    <a href="{{ url_for('daily.index') }}" class="text-decoration-none text-reset">
+      <div class="card h-100 shadow-sm module-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="display-4 me-3"><i class="bi bi-clipboard-check-fill"></i></div>
+            <div>
+              <h4 class="card-title mb-1">日常管理</h4>
+              <p class="card-text text-muted small mb-0">请假迟到 / 违纪记录 / 表扬奖励 / 时间线</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent">
+          <span class="text-muted small">点击进入日常管理</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col">
+    <div class="card h-100 shadow-sm module-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="display-4 me-3"><i class="bi bi-tools"></i></div>
+          <div>
+            <h4 class="card-title mb-1">常用工具</h4>
+            <p class="card-text text-muted small mb-0">智能排座 / 值日排程 / 班费管理</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent">
+        <a href="{{ url_for('tools.seating') }}" class="btn btn-sm btn-outline-info me-1">
+          <i class="bi bi-grid-3x3"></i> 智能排座
+        </a>
+        <a href="{{ url_for('tools.duty') }}" class="btn btn-sm btn-outline-info me-1">
+          <i class="bi bi-people-fill"></i> 值日排程
+        </a>
+        <a href="{{ url_for('tools.fee') }}" class="btn btn-sm btn-outline-info">
+          <i class="bi bi-cash-coin"></i> 班费 ¥{{ '%.2f'|format(stats.fee_balance) }}
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card bg-light">
+  <div class="card-body">
+    <h6 class="card-title"><i class="bi bi-info-circle"></i> 使用提示</h6>
+    <ol class="small mb-0 text-muted">
+      <li>首次使用: 先到「学生基本信息」上传名单(可下载模板填写)</li>
+      <li>再上传 Excel 成绩单, 系统自动按年月建考试记录</li>
+      <li>每上传一次成绩自动与上次对比, 点击图表上的学生姓名可下钻个人</li>
+      <li>日常管理与档案页互通, 奖惩记录会在学生档案同步展示</li>
+      <li>排座/值日支持权重调整, 强制同性别等可勾选配置</li>
+    </ol>
+  </div>
+</div>
+
+{% if month_birthday or upcoming_7days %}
+<div class="row g-3 mt-1">
+  {% if upcoming_7days %}
+  <div class="col-md-6">
+    <div class="card shadow-sm border-warning h-100">
+      <div class="card-header bg-warning text-white">
+        <i class="bi bi-cake2"></i> 近 7 天生日提醒
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for s, bd in upcoming_7days %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{{ url_for('students.profile', sid=s.id) }}" class="text-decoration-none">
+              <b>{{ s.name }}</b>
+              <small class="text-muted">{{ s.student_no }}</small>
+            </a>
+            <span class="badge bg-warning">
+              {{ bd.month }}月{{ bd.day }}日
+              {% if bd == today %}· 今天 🎂{% elif bd == tomorrow %}· 明天{% endif %}
+            </span>
+          </li>
+          {% else %}
+          <li class="list-group-item text-muted small">近 7 天无学生过生日</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if month_birthday %}
+  <div class="col-md-6">
+    <div class="card shadow-sm border-info h-100">
+      <div class="card-header bg-info text-white">
+        <i class="bi bi-calendar-month"></i> 本月生日名单（{{ month_birthday|length }} 人）
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for s in month_birthday %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{{ url_for('students.profile', sid=s.id) }}" class="text-decoration-none">
+              <b>{{ s.name }}</b>
+              <small class="text-muted">{{ s.student_no }}</small>
+            </a>
+            <span class="badge bg-info">{{ s.birth_date.month }}月{{ s.birth_date.day }}日</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

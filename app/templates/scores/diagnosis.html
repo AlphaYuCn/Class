@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }} 偏科诊断 - {{ exam.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-clipboard2-pulse"></i> {{ s.name }} 偏科诊断</h2>
+    <div class="small text-muted">
+      <a href="{{ url_for('scores.detail', eid=exam.id, sid=s.id) }}">← 返回详情</a>
+      · {{ exam.name }} · 总分 {{ cur.total|score1 }} · 班排 {{ cur.class_rank or '' }}
+    </div>
+  </div>
+</div>
+
+{% if weak %}
+<div class="alert alert-danger">
+  <i class="bi bi-exclamation-triangle"></i> <b>薄弱科目（{{ weak|length }} 科）:</b>
+  {% for d in weak %}{{ d.label }}（偏差 {{ d.diff|score1 }}）{% if not loop.last %}、{% endif %}{% endfor %}
+</div>
+{% endif %}
+
+{% if strong %}
+<div class="alert alert-success">
+  <i class="bi bi-star-fill"></i> <b>优势科目（{{ strong|length }} 科）:</b>
+  {% for d in strong %}{{ d.label }}（超均分 {{ d.diff|score1 }}）{% if not loop.last %}、{% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header"><i class="bi bi-table"></i> 各科诊断明细</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>科目</th><th>个人得分</th><th>满分</th><th>得分率</th>
+            <th>班级均分</th><th>均分得分率</th><th>与均分差</th><th>单科排名</th><th>状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in diag %}
+          <tr>
+            <td><b>{{ d.label }}</b></td>
+            <td>{{ d.score|score1 }}</td>
+            <td>{{ d.full }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-1">
+                <div class="progress flex-grow-1" style="height:6px;min-width:60px">
+                  <div class="progress-bar {% if d.status == 'weak' %}bg-danger{% elif d.status == 'strong' %}bg-success{% else %}bg-info{% endif %}"
+                       style="width: {{ d.rate }}%"></div>
+                </div>
+                <small>{{ d.rate|round(1) }}%</small>
+              </div>
+            </td>
+            <td>{{ d.avg|score1 }}</td>
+            <td>{{ d.avg_rate|round(1) }}%</td>
+            <td>
+              {% if d.diff < 0 %}<span class="text-danger">{{ d.diff|score1 }}</span>
+              {% elif d.diff > 0 %}<span class="text-success">+{{ d.diff|score1 }}</span>
+              {% else %}0{% endif %}
+            </td>
+            <td>{{ d.rank or '' }}</td>
+            <td>
+              {% if d.status == 'weak' %}
+              <span class="badge bg-danger">薄弱</span>
+              {% elif d.status == 'strong' %}
+              <span class="badge bg-success">优势</span>
+              {% else %}
+              <span class="badge bg-secondary">正常</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="diagnosis-chart" style="width:100%;height:400px"></div>
+
+{% if weak %}
+<div class="card shadow-sm mt-3">
+  <div class="card-header"><i class="bi bi-lightbulb"></i> 薄弱科目建议</div>
+  <div class="card-body">
+    <ul class="mb-0">
+      {% for d in weak %}
+      <li>
+        <b>{{ d.label }}</b>: 得分率 {{ d.rate|round(1) }}%，低于班级均分 {{ (-d.diff)|score1 }} 分。
+        建议加强基础概念复习，配合专项练习，多与科任老师沟通。
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const DIAG_DATA = {{ diag|tojson }};
+  if (window.initDiagnosis) initDiagnosis(DIAG_DATA);
+</script>
+{% endblock %}

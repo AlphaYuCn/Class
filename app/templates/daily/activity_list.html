@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}班会/活动记录{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-calendar-event"></i> 班会 / 活动记录</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('daily.activity_new') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> 新增记录
+    </a>
+    <a href="{{ url_for('daily.index') }}" class="btn btn-link">← 返回日常管理</a>
+  </div>
+</div>
+
+<form method="get" class="mb-3 d-flex gap-2">
+  <input type="text" name="term" value="{{ term }}" class="form-control" placeholder="按学期搜索，如 2025秋" style="max-width:200px;">
+  <select name="type" class="form-select" style="max-width:160px;" onchange="this.form.submit()">
+    <option value="all" {% if type=='all' %}selected{% endif %}>全部类型</option>
+    {% for k, v in type_choices.items() %}
+      <option value="{{ k }}" {% if type==k %}selected{% endif %}>{{ v }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
+</form>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if activities %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>日期</th><th>类型</th><th>主题</th><th>学期</th>
+              <th>参与人</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in activities %}
+              <tr>
+                <td>{{ a.held_at|date_cn }}</td>
+                <td>
+                  <span class="badge {% if a.activity_type == 'meeting' %}bg-primary{% else %}bg-info{% endif %}">
+                    {{ a.type_label() }}
+                  </span>
+                </td>
+                <td><a href="{{ url_for('daily.activity_detail', aid=a.id) }}">{{ a.title }}</a></td>
+                <td>{{ a.term or '—' }}</td>
+                <td><small class="text-muted">{{ a.participants or '—' }}</small></td>
+                <td>
+                  <a href="{{ url_for('daily.activity_detail', aid=a.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-eye"></i> 查看
+                  </a>
+                  <form method="post" action="{{ url_for('daily.activity_delete', aid=a.id) }}" class="d-inline" onsubmit="return confirm('确认删除「{{ a.title }}」？');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center text-muted py-5">
+        <i class="bi bi-calendar-event" style="font-size:3rem;"></i>
+        <p class="mt-2">暂无记录，点击右上角新增</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

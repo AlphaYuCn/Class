@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}班费预算管理 - {{ term }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-wallet2"></i> 班费预算管理</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('tools.fee') }}" class="btn btn-outline-primary">
+      <i class="bi bi-list-ul"></i> 流水记录
+    </a>
+    <a href="{{ url_for('tools.seating') }}" class="btn btn-link">← 工具首页</a>
+  </div>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  按学期+分类设定预算，系统自动比对实际支出。<b>执行率</b>＝实际支出÷预算；超支会显示红色预警。
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card text-white bg-primary shadow-sm"><div class="card-body">
+      <div class="small">学期预算</div><div class="display-6">{{ budget_total|score1 }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white {% if actual_total > budget_total %}bg-danger{% else %}bg-success{% endif %} shadow-sm"><div class="card-body">
+      <div class="small">实际支出</div><div class="display-6">{{ actual_total|score1 }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-info shadow-sm"><div class="card-body">
+      <div class="small">当前余额（收支差额）</div><div class="display-6">{{ balance|score1 }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-warning shadow-sm"><div class="card-body">
+      <div class="small">超支分类数</div><div class="display-6">{{ over_budget|length }}</div>
+    </div></div>
+  </div>
+</div>
+
+<form method="get" class="mb-3">
+  <div class="input-group" style="max-width:300px;">
+    <span class="input-group-text">学期</span>
+    <input type="text" name="term" value="{{ term }}" class="form-control" placeholder="如 2025秋">
+    <button class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
+  </div>
+</form>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-plus-circle"></i> 新增/更新预算</div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <label class="form-label">学期 <span class="text-danger">*</span></label>
+            <input type="text" name="term" value="{{ term }}" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">分类 <span class="text-danger">*</span></label>
+            <input type="text" name="category" class="form-control" placeholder="如：学习用品、文体活动、奖品" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">预算金额 <span class="text-danger">*</span></label>
+            <input type="number" step="0.1" name="amount" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">说明</label>
+            <input type="text" name="note" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 保存</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    {{ chart_container('budget-bar', term ~ ' 预算 vs 实际', 320) }}
+
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-table"></i> 预算执行明细 ({{ budgets|length }})</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>分类</th><th>预算</th><th>实际支出</th>
+                <th>执行率</th><th>差额</th><th>状态</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in budgets %}
+                {% set actual = actual_map.get(b.category, 0) %}
+                {% set exec_rate = (actual / b.amount * 100) if b.amount > 0 else 0 %}
+                {% set diff = b.amount - actual %}
+                <tr>
+                  <td><b>{{ b.category }}</b>
+                    {% if b.note %}<div class="small text-muted">{{ b.note }}</div>{% endif %}
+                  </td>
+                  <td>{{ b.amount|score1 }}</td>
+                  <td>{{ actual|score1 }}</td>
+                  <td>
+                    <span class="badge {% if exec_rate > 100 %}bg-danger{% elif exec_rate >= 80 %}bg-warning{% else %}bg-success{% endif %}">
+                      {{ exec_rate|round(1) }}%
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge {% if diff < 0 %}bg-danger{% else %}bg-success{% endif %}">
+                      {{ diff|score1 }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if actual > b.amount %}<span class="badge bg-danger">超支</span>{% else %}<span class="badge bg-success">在预算内</span>{% endif %}
+                  </td>
+                  <td>
+                    <form method="post" action="{{ url_for('tools.fee_budget_delete', bid=b.id) }}" class="d-inline" onsubmit="return confirm('确认删除此预算项？');">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </td>
+                </tr>
+              {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-4">本学期暂无预算</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>
+  const budgetData = [
+    {% for b in budgets %}
+    { category: "{{ b.category }}", budget: {{ b.amount }}, actual: {{ actual_map.get(b.category, 0) }} },
+    {% endfor %}
+  ];
+  const bChart = echarts.init(document.getElementById('budget-bar'));
+  bChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['预算', '实际支出'] },
+    grid: { left: 50, right: 30, bottom: 50 },
+    xAxis: { type: 'category', data: budgetData.map(d => d.category), axisLabel: { rotate: 30 } },
+    yAxis: { type: 'value', name: '金额' },
+    series: [
+      { name: '预算', type: 'bar', data: budgetData.map(d => d.budget), itemStyle: { color: '#0d6efd' } },
+      { name: '实际支出', type: 'bar', data: budgetData.map(d => ({
+        value: d.actual,
+        itemStyle: { color: d.actual > d.budget ? '#dc3545' : '#28a745' }
+      })) }
+    ]
+  });
+  window.addEventListener('resize', () => bChart.resize());
+</script>
+{% endblock %}
+{% endblock %}

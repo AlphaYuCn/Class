@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}家访记录{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-house-heart"></i> 家访记录</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('daily.visit_new') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> 新增家访
+    </a>
+    <a href="{{ url_for('daily.index') }}" class="btn btn-link">← 日常</a>
+  </div>
+</div>
+
+<form method="get" class="mb-3">
+  <div class="input-group" style="max-width:400px;">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="按学生姓名/学号搜索...">
+    <button class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
+  </div>
+</form>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if visits %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>学生</th><th>家访日期</th><th>陪同人</th>
+              <th>家庭情况</th><th>家长态度</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in visits %}
+              <tr>
+                <td><a href="{{ url_for('students.profile', sid=v.student_id) }}">{{ v.student.name }}</a>
+                  <small class="text-muted">({{ v.student.student_no }})</small>
+                </td>
+                <td>{{ v.visit_date|date_cn }}</td>
+                <td>{{ v.accompany or '—' }}</td>
+                <td><small>{{ (v.home_situation or '—')[:40] }}{% if v.home_situation and v.home_situation|length > 40 %}...{% endif %}</small></td>
+                <td><small>{{ (v.parent_attitude or '—')[:30] }}</small></td>
+                <td>
+                  <a href="{{ url_for('daily.visit_detail', vid=v.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-eye"></i> 详情
+                  </a>
+                  <form method="post" action="{{ url_for('daily.visit_delete', vid=v.id) }}" class="d-inline" onsubmit="return confirm('确认删除？');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center text-muted py-5">
+        <i class="bi bi-house-heart" style="font-size:3rem;"></i>
+        <p class="mt-2">暂无家访记录</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

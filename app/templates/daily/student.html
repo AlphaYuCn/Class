@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }} 日常管理{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-clipboard"></i> {{ s.name }} 的日常管理</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('daily.comment', sid=s.id) }}" class="btn btn-outline-success">
+      <i class="bi bi-chat-square-text"></i> 学生评语
+    </a>
+    <a href="{{ url_for('students.profile', sid=s.id) }}" class="btn btn-outline-primary">← 档案</a>
+    <a href="{{ url_for('daily.index') }}" class="btn btn-link">返回列表</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">新增记录</div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">类型 <span class="text-danger">*</span></label>
+            <select class="form-select" name="record_type" required>
+              {% for code, label in type_choices.items() %}
+              <option value="{{ code }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">发生日期</label>
+            <input type="date" class="form-control" name="occurred_at" value="{{ today }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">描述</label>
+            <textarea class="form-control" name="description" rows="3"
+                      placeholder="如：第3节英语课溜号玩笔 / 期中考试进步表扬等"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">严重程度（仅违纪类生效，0=中性）</label>
+            <input type="number" class="form-control" name="severity" value="0" min="0" max="5">
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 添加</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">记录时间线（倒序）</div>
+      <div class="card-body p-0">
+        {% if records %}
+        <ul class="list-group list-group-flush">
+          {% for r in records %}
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div class="me-auto">
+              <span class="badge {% if r.is_praise() %}bg-success{% else %}bg-warning{% endif %} me-2">
+                {{ r.type_label() }}
+              </span>
+              {% if r.severity and not r.is_praise() %}
+              <span class="badge bg-danger me-2">严重度 {{ r.severity }}</span>
+              {% endif %}
+              <span class="text-muted small">{{ r.occurred_at|date_cn }}</span>
+              <div class="mt-1">{{ r.description or '' }}</div>
+            </div>
+            <form method="post" action="{{ url_for('daily.delete_record', rid=r.id) }}"
+                  onsubmit="return confirm('确认删除该记录？')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-journal-plus" style="font-size:3rem"></i>
+          <p class="mt-3">暂无记录，从左侧添加第一条吧。</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

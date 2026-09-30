@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}{{ exam.name }} 学科均衡度分析{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-pie-chart"></i> {{ exam.name }} 学科均衡度分析</h2>
+    <div class="text-muted small">{{ exam.exam_date|date_cn }}</div>
+  </div>
+  <a href="{{ url_for('scores.overview', eid=exam.id) }}" class="btn btn-link">← 考试总览</a>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  <b>变异系数（CV）</b> = 标准差 / 均分 × 100%。CV 越小，学生各科成绩越均衡；CV 越大，偏科越严重（建议 CV ≥ 20% 视为偏科）。
+</div>
+
+<div class="row g-3">
+  <div class="col-12">
+    {{ chart_container('balance-box', '各科成绩分布箱线图', 360) }}
+  </div>
+  <div class="col-12">
+    {{ chart_container('balance-cv', '各科变异系数对比', 280) }}
+  </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header"><i class="bi bi-table"></i> 各科均衡度统计</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>科目</th><th>满分</th><th>均分</th><th>最高</th><th>最低</th>
+            <th>极差</th><th>标准差</th><th>变异系数</th><th>状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sb in subject_balance %}
+          <tr>
+            <td><b>{{ sb.label }}</b></td>
+            <td>{{ sb.full }}</td>
+            <td>{{ sb.avg|score1 }}</td>
+            <td>{{ sb.max|score1 }}</td>
+            <td>{{ sb.min|score1 }}</td>
+            <td>{{ sb.range|score1 }}</td>
+            <td>{{ sb.std|score1 }}</td>
+            <td>
+              <span class="badge {% if sb.cv < 15 %}bg-success{% elif sb.cv < 25 %}bg-warning{% else %}bg-danger{% endif %}">
+                {{ sb.cv }}%
+              </span>
+            </td>
+            <td>
+              {% if sb.cv < 15 %}<span class="text-success">均衡</span>
+              {% elif sb.cv < 25 %}<span class="text-warning">轻度分化</span>
+              {% else %}<span class="text-danger">严重分化</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header"><i class="bi bi-people"></i> 学生均衡度排行（CV 升序：越靠前越均衡）</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>排名</th><th>学生</th><th>班排</th>
+            <th>最低分科目</th><th>最高分科目</th>
+            <th>极差</th><th>标准差</th><th>变异系数</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sb in student_balance %}
+          <tr>
+            <td><span class="badge bg-secondary">{{ loop.index }}</span></td>
+            <td>
+              <a href="{{ url_for('scores.detail', eid=exam.id, sid=sb.student.id) }}" class="fw-bold text-decoration-none">
+                {{ sb.student.name }}
+              </a>
+            </td>
+            <td>{{ sb.score_record.class_rank or '—' }}</td>
+            <td>
+              <span class="badge bg-danger">{{ subject_label[sb.min_subj] }}</span>
+              {{ sb.min_score|score1 }}
+            </td>
+            <td>
+              <span class="badge bg-success">{{ subject_label[sb.max_subj] }}</span>
+              {{ sb.max_score|score1 }}
+            </td>
+            <td>{{ sb.range|score1 }}</td>
+            <td>{{ sb.std|score1 }}</td>
+            <td>
+              <span class="badge {% if sb.cv < 15 %}bg-success{% elif sb.cv < 25 %}bg-warning{% else %}bg-danger{% endif %}">
+                {{ sb.cv }}%
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const EID = {{ exam.id }};
+  const BOX_DATA = {{ subject_balance|tojson }};
+  if (window.initBalance) initBalance(EID, BOX_DATA);
+</script>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}智能排座{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> 智能排座系统</h2>
+  <a href="{{ url_for('tools.duty') }}" class="btn btn-link">→ 值日排程</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">排座参数</div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">行数</label>
+              <input type="number" class="form-control" name="rows" value="6" min="1" max="20" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label">列数</label>
+              <input type="number" class="form-control" name="cols" value="8" min="1" max="20" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">排座名称</label>
+              <input type="text" class="form-control" name="name"
+                     placeholder="留空按行列数自动命名">
+            </div>
+            <div class="col-12"><hr class="my-2"></div>
+            <div class="col-12 small text-muted">
+              权重配置（默认值参考：成绩相近 1.0 / 学科互补 1.2 / 同性别 0.6 / 星座互补 0.4）
+            </div>
+            <div class="col-6">
+              <label class="form-label">w1 成绩相近</label>
+              <input type="number" class="form-control" name="w1" value="1.0" step="0.1" min="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label">w2 学科互补</label>
+              <input type="number" class="form-control" name="w2" value="1.2" step="0.1" min="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label">w3 同性别</label>
+              <input type="number" class="form-control" name="w3" value="0.6" step="0.1" min="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label">w4 星座互补</label>
+              <input type="number" class="form-control" name="w4" value="0.4" step="0.1" min="0">
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input" name="force_same_gender" id="forceGender">
+                <label class="form-check-label" for="forceGender">
+                  强制同性别邻座（异性邻接额外扣 2 分）
+                </label>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label">模拟退火迭代次数</label>
+              <input type="number" class="form-control" name="iterations" value="2000" min="100" max="20000" step="100">
+              <div class="form-text">越大越优，但越慢</div>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-magic"></i> 开始排座
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">排座原则说明</div>
+      <div class="card-body small">
+        <ol>
+          <li><b>成绩相近</b>：邻座总分差距越小越好（差距 100 分满分扣完）。</li>
+          <li><b>学科互补</b>：彼此优势/弱势学科互补的搭档坐一起，便于互相请教。</li>
+          <li><b>同性别</b>：同性邻座加分；勾选"强制"后异性邻接扣 2 分。</li>
+          <li><b>星座互补</b>：按四象元素，火↔风、土↔水为佳。</li>
+        </ol>
+        <hr>
+        <p class="mb-1"><b>算法</b>：蛇形初始化（按总分降序 S 形分散强者）+ 模拟退火 2000 次。</p>
+        <p class="mb-1"><b>冲突处理</b>：四原则相互矛盾时采用软约束（权重）。</p>
+        <p class="mb-0 text-muted">提示：座位数必须 ≥ 学生数，多余座位会显示为空座。</p>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mt-3">
+      <div class="card-header bg-light"><i class="bi bi-upload"></i> 从 Excel 导入排座方案</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('tools.seating_import') }}" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <label class="form-label">方案名称</label>
+            <input type="text" class="form-control form-control-sm" name="name"
+                   placeholder="留空按行列自动命名">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small">行数</label>
+              <input type="number" class="form-control form-control-sm" name="rows" value="6" min="1" max="20" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small">列数</label>
+              <input type="number" class="form-control form-control-sm" name="cols" value="8" min="1" max="20" required>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Excel 文件</label>
+            <input type="file" class="form-control form-control-sm" name="file" accept=".xlsx,.xls" required>
+            <div class="form-text small">
+              单元格格式: <code>学号 姓名</code>，空座留空。可先从下方任一方案导出再修改。
+            </div>
+          </div>
+          <button type="submit" class="btn btn-sm btn-outline-success w-100">
+            <i class="bi bi-upload"></i> 导入并保存为新方案
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {% if history %}
+    <div class="card shadow-sm mt-3">
+      <div class="card-header bg-light">历史排座方案</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr><th>名称</th><th>规模</th><th>总评分</th><th>创建时间</th><th class="text-end">操作</th></tr>
+            </thead>
+            <tbody>
+              {% for sa in history %}
+              <tr>
+                <td>{{ sa.name }}</td>
+                <td>{{ sa.rows }} × {{ sa.cols }}</td>
+                <td>{{ sa.score_total | round(2) if sa.score_total else '' }}</td>
+                <td><small class="text-muted">{{ sa.created_at|datetime_cn }}</small></td>
+                <td class="text-end">
+                  <a href="{{ url_for('tools.seating_view', aid=sa.id) }}" class="btn btn-sm btn-outline-primary">查看</a>
+                  <a href="{{ url_for('tools.seating_export', aid=sa.id) }}" class="btn btn-sm btn-outline-success" title="导出 Excel">
+                    <i class="bi bi-download"></i>
+                  </a>
+                  <form method="post" action="{{ url_for('tools.seating_delete', aid=sa.id) }}"
+                        class="d-inline"
+                        onsubmit="return confirm('确认删除？')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

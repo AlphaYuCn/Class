@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}家校联系日志{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-telephone"></i> 家校联系日志</h2>
+    <div class="text-muted small">记录与家长沟通的时间、方式与内容</div>
+  </div>
+  <a href="{{ url_for('daily.index') }}" class="btn btn-link">← 返回日常管理</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header"><i class="bi bi-plus-circle"></i> 新增联系记录</div>
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">学生</label>
+          <select name="student_id" class="form-select" required>
+            <option value="">请选择学生</option>
+            {% for s in students %}
+            <option value="{{ s.id }}">{{ s.name }}（{{ s.student_no }}）</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">沟通日期</label>
+          <input type="date" name="contact_date" class="form-control" value="{{ today }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">沟通方式</label>
+          <select name="contact_type" class="form-select">
+            {% for code, label in type_choices.items() %}
+            <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">沟通对象</label>
+          <input type="text" name="contact_person" class="form-control" placeholder="如: 父亲/母亲">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">沟通内容</label>
+          <input type="text" name="content" class="form-control" placeholder="简要说明">
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 记录</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between">
+    <span>联系记录（共 {{ contacts|length }} 条）</span>
+  </div>
+  <div class="card-body p-0">
+    {% if contacts %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>日期</th><th>学生</th><th>方式</th><th>沟通对象</th><th>内容摘要</th><th class="text-end">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in contacts %}
+          <tr>
+            <td><small>{{ c.contact_date|date_cn }}</small></td>
+            <td>
+              <a href="{{ url_for('daily.contact_student', sid=c.student_id) }}" class="text-decoration-none fw-bold">
+                {{ c.student.name }}
+              </a>
+            </td>
+            <td><span class="badge bg-info">{{ c.type_label() }}</span></td>
+            <td>{{ c.contact_person or '' }}</td>
+            <td>{{ c.content or '' }}</td>
+            <td class="text-end">
+              <form method="post" action="{{ url_for('daily.contact_delete', cid=c.id) }}"
+                    onsubmit="return confirm('确认删除?')" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-4">暂无联系记录</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

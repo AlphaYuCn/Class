@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }} 成长轨迹{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-person-lines-fill"></i> {{ s.name }} 成长轨迹</h2>
+    <div class="text-muted small">
+      {{ s.student_no }} · 综合个人档案（成绩 + 奖惩 + 评语 + 家校联系）
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('students.profile', sid=s.id) }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-person"></i> 档案
+    </a>
+    <a href="{{ url_for('daily.student_page', sid=s.id) }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-journal"></i> 日常记录
+    </a>
+    <a href="{{ url_for('scores.trend', sid=s.id) }}" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-graph-up"></i> 成绩趋势
+    </a>
+    <a href="{{ url_for('daily.index') }}" class="btn btn-link btn-sm">← 日常管理</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body">
+    <div class="text-uppercase small">表扬/奖励</div>
+    <div class="display-6">{{ praise_count }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card bg-danger text-white"><div class="card-body">
+    <div class="text-uppercase small">违纪/迟到</div>
+    <div class="display-6">{{ punish_count }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card bg-info text-white"><div class="card-body">
+    <div class="text-uppercase small">请假次数</div>
+    <div class="display-6">{{ leave_count }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card bg-warning text-dark"><div class="card-body">
+    <div class="text-uppercase small">请假天数</div>
+    <div class="display-6">{{ leave_days|score1 }}</div>
+  </div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header"><i class="bi bi-person-badge"></i> 基本信息</div>
+      <div class="card-body">
+        <p class="mb-2">姓名：<b>{{ s.name }}</b>（{{ s.student_no }}）</p>
+        <p class="mb-2">性别：{% if s.gender == 'M' %}男{% elif s.gender == 'F' %}女{% else %}—{% endif %}
+          {% if s.birth_date %}· 出生：{{ s.birth_date|date_cn }}{% endif %}</p>
+        {% if s.father_name %}
+        <p class="mb-2 small">父亲：{{ s.father_name }} {% if s.father_phone %}· {{ s.father_phone }}{% endif %}</p>
+        {% endif %}
+        {% if s.mother_name %}
+        <p class="mb-2 small">母亲：{{ s.mother_name }} {% if s.mother_phone %}· {{ s.mother_phone }}{% endif %}</p>
+        {% endif %}
+        {% if s.note %}<p class="mb-0 small text-muted">{{ s.note }}</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-header"><i class="bi bi-bar-chart"></i> 历次成绩</div>
+      <div class="card-body p-0">
+        {% if scores %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0 align-middle">
+            <thead class="table-light">
+              <tr><th>考试</th><th>总分</th><th>班排</th></tr>
+            </thead>
+            <tbody>
+              {% for r in scores %}
+              <tr>
+                <td><small>{{ r.exam.name }}</small></td>
+                <td><b>{{ r.total|score1 if r.total else '—' }}</b></td>
+                <td>{{ r.class_rank or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-3 small">暂无成绩</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-chat-dots"></i> 学期评语</div>
+      <div class="card-body">
+        {% if comments %}
+        {% for c in comments %}
+        <div class="border-start border-3 {% if c.is_draft %}border-warning{% else %}border-success{% endif %} ps-2 mb-2">
+          <div class="d-flex justify-content-between">
+            <b>{{ c.term }}</b>
+            <span class="badge {% if c.is_draft %}bg-warning{% else %}bg-success{% endif %}">
+              {% if c.is_draft %}草稿{% else %}定稿{% endif %}
+            </span>
+          </div>
+          <small class="text-muted">{{ c.content[:50] }}{% if c.content|length > 50 %}...{% endif %}</small>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center text-muted small">暂无评语</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-clock-history"></i> 成长时间线</div>
+      <div class="card-body" style="max-height:800px;overflow-y:auto">
+        {% if timeline %}
+        <ul class="timeline list-unstyled mb-0">
+          {% for item in timeline %}
+          <li class="mb-3 position-relative" style="padding-left:30px">
+            <span class="position-absolute" style="left:0;top:4px">
+              {% if item.type == 'score' %}
+                <i class="bi bi-graph-up text-primary" style="font-size:1.2rem"></i>
+              {% elif item.type == 'contact' %}
+                <i class="bi bi-telephone text-info" style="font-size:1.2rem"></i>
+              {% elif item.type == 'comment' %}
+                <i class="bi bi-chat-text text-secondary" style="font-size:1.2rem"></i>
+              {% elif item.is_praise %}
+                <i class="bi bi-award text-success" style="font-size:1.2rem"></i>
+              {% else %}
+                <i class="bi bi-exclamation-circle text-danger" style="font-size:1.2rem"></i>
+              {% endif %}
+            </span>
+            <div class="border-start {% if item.is_praise %}border-success{% elif item.type == 'score' %}border-primary{% elif item.type == 'contact' %}border-info{% else %}border-danger{% endif %} ps-3 pb-2">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <small class="text-muted">{{ item.date|date_cn }}</small>
+                  <div class="fw-bold">{{ item.title }}</div>
+                </div>
+                <span class="badge {% if item.is_praise %}bg-success{% elif item.type == 'score' %}bg-primary{% elif item.type == 'contact' %}bg-info{% else %}bg-danger{% endif %}">
+                  {{ item.label }}
+                </span>
+              </div>
+              {% if item.content %}<small class="text-muted d-block mt-1">{{ item.content }}</small>{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-inbox" style="font-size:3rem"></i>
+          <p class="mt-3">暂无成长记录</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

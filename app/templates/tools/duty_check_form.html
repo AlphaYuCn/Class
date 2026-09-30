@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}录入检查记录{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-clipboard-check"></i> 录入值日检查</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('tools.duty_check_list') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-clock-history"></i> 历史记录
+    </a>
+    <a href="{{ url_for('tools.duty_checklist') }}" class="btn btn-link">← 清单管理</a>
+  </div>
+</div>
+
+{% if not selected_template %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle"></i> 请先选择检查清单（或 <a href="{{ url_for('tools.duty_checklist') }}">新建一个</a>）。
+</div>
+{% endif %}
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">检查日期</label>
+          <input type="date" name="check_date" value="{{ today }}" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">值日组</label>
+          <select name="group_id" class="form-select">
+            <option value="">— 不指定 —</option>
+            {% for g in groups %}
+              <option value="{{ g.id }}">{{ g.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">检查清单</label>
+          <select name="template_id" class="form-select" onchange="location.href='?tid='+this.value">
+            <option value="">— 选择清单 —</option>
+            {% for t in templates %}
+              <option value="{{ t.id }}" {% if selected_template and selected_template.id == t.id %}selected{% endif %}>{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {% if selected_template and selected_items %}
+      <hr>
+      <h6><i class="bi bi-list-check"></i> 各项评分（满分自定，仅录入得分）</h6>
+      <div class="row g-3">
+        {% for item in selected_items %}
+        <div class="col-md-6">
+          <label class="form-label">{{ loop.index }}. {{ item }}</label>
+          <input type="number" step="0.5" name="score_{{ loop.index0 }}" class="form-control" value="0" min="0">
+        </div>
+        {% endfor %}
+      </div>
+      {% elif selected_template %}
+      <div class="alert alert-info mt-3">该清单没有检查项</div>
+      {% endif %}
+
+      <div class="mt-3">
+        <label class="form-label">备注</label>
+        <textarea name="note" rows="2" class="form-control"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-save"></i> 保存检查记录</button>
+      <a href="{{ url_for('tools.duty_checklist') }}" class="btn btn-link mt-3">取消</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

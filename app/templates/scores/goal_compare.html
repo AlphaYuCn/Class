@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% from "macros/charts.html" import chart_container %}
+{% block title %}{{ s.name }} 目标达成对比{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-bullseye"></i> {{ s.name }} 目标达成对比</h2>
+    <div class="text-muted small">{{ s.student_no }} · 学期：{{ term }}</div>
+  </div>
+  <a href="{{ url_for('scores.goal_edit', sid=s.id, term=term) }}" class="btn btn-link">← 修改目标</a>
+</div>
+
+{% if not g %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle"></i> 该学生本学期尚未设定目标。请先
+  <a href="{{ url_for('scores.goal_edit', sid=s.id, term=term) }}">设定目标</a>。
+</div>
+{% else %}
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header">目标 vs 最近成绩</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr><th>项目</th><th>目标</th><th>实际</th><th>差距</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>总分</td>
+              <td><b>{{ g.total|score1 if g.total else '—' }}</b></td>
+              <td><b>{{ latest.total|score1 if latest and latest.total else '—' }}</b></td>
+              {% if g.total and latest and latest.total %}
+                {% set diff = latest.total - g.total %}
+                <td>
+                  {% if diff >= 0 %}
+                    <span class="badge bg-success">+{{ diff|score1 }}</span>
+                  {% else %}
+                    <span class="badge bg-danger">{{ diff|score1 }}</span>
+                  {% endif %}
+                </td>
+              {% else %}<td>—</td>{% endif %}
+            </tr>
+            <tr>
+              <td>班级排名</td>
+              <td>{% if g.class_rank_target %}前{{ g.class_rank_target }}{% else %}—{% endif %}</td>
+              <td><b>{{ latest.class_rank if latest and latest.class_rank else '—' }}</b></td>
+              {% if g.class_rank_target and latest and latest.class_rank %}
+                {% set ok = latest.class_rank <= g.class_rank_target %}
+                <td>
+                  {% if ok %}
+                    <span class="badge bg-success">达成</span>
+                  {% else %}
+                    <span class="badge bg-danger">差{{ latest.class_rank - g.class_rank_target }}名</span>
+                  {% endif %}
+                </td>
+              {% else %}<td>—</td>{% endif %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    {{ chart_container('goal-radar', '各科目标 vs 实际 雷达图', 360) }}
+  </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header">各科对比明细</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>科目</th><th>满分</th>
+            <th>目标</th><th>实际</th><th>差距</th><th>达成率</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sd in subject_data %}
+          {% if sd.target is not none or sd.actual is not none %}
+          <tr>
+            <td><b>{{ sd.label }}</b></td>
+            <td>{{ sd.full }}</td>
+            <td>{{ sd.target|score1 if sd.target else '—' }}</td>
+            <td>{{ sd.actual|score1 if sd.actual else '—' }}</td>
+            <td>
+              {% if sd.target and sd.actual %}
+                {% set d = sd.actual - sd.target %}
+                {% if d >= 0 %}<span class="badge bg-success">+{{ d|score1 }}</span>
+                {% else %}<span class="badge bg-danger">{{ d|score1 }}</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if sd.target and sd.actual %}
+                {% set rate = (sd.actual / sd.target * 100)|round(1) %}
+                <div class="progress" style="height:18px;min-width:120px">
+                  <div class="progress-bar {% if rate >= 100 %}bg-success{% elif rate >= 90 %}bg-info{% elif rate >= 70 %}bg-warning{% else %}bg-danger{% endif %}"
+                       style="width: {{ [rate, 100]|min }}%">{{ rate }}%</div>
+                </div>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const SID = {{ s.id }};
+  const TERM = "{{ term }}";
+  const TARGETS = {
+    {% for sd in subject_data %}
+    "{{ sd.key }}": {{ sd.target if sd.target else 'null' }},
+    {% endfor %}
+  };
+  if (window.initGoalCompare) initGoalCompare(SID, TERM, TARGETS);
+</script>
+{% endblock %}

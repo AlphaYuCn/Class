@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}批量上传体检记录{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-cloud-upload"></i> 批量上传体检记录</h2>
+  <a href="{{ url_for('students.health_summary') }}" class="btn btn-link">
+    <i class="bi bi-arrow-left"></i> 返回健康总览
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-download"></i> 第 1 步：下载模板</div>
+      <div class="card-body">
+        <p class="text-muted small">请先下载标准模板，按格式填写全班体检数据后再上传。</p>
+        <a href="{{ url_for('students.health_template') }}" class="btn btn-outline-primary">
+          <i class="bi bi-file-earmark-excel"></i> 下载体检记录模板.xlsx
+        </a>
+        <hr>
+        <h6>模板字段说明</h6>
+        <ul class="small text-muted mb-0">
+          <li><b>学号</b>：必须与系统中学生学号一致</li>
+          <li><b>体检日期</b>：YYYY-MM-DD 格式，如 2026-09-01</li>
+          <li><b>身高/体重</b>：数字，可空</li>
+          <li><b>左眼/右眼视力</b>：支持 5.0 制或 1.0 制，可空</li>
+          <li><b>体检结论</b>：文本，如"正常/近视/龋齿"</li>
+          <li><b>是否有异常</b>：下拉"是/否"</li>
+          <li><b>异常说明</b>：异常时必填</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-success text-white"><i class="bi bi-upload"></i> 第 2 步：上传填好的 Excel</div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">选择 Excel 文件</label>
+            <input type="file" name="file" accept=".xlsx,.xls" class="form-control" required>
+            <div class="form-text">支持 .xlsx / .xls 格式</div>
+          </div>
+          <button type="submit" class="btn btn-success"
+                  onclick="return confirm('确认上传? 同学号同日期将覆盖更新')">
+            <i class="bi bi-check-lg"></i> 开始导入
+          </button>
+        </form>
+      </div>
+    </div>
+    <div class="alert alert-info mt-3 small">
+      <i class="bi bi-info-circle"></i>
+      导入规则：学号未在系统中找到的行将跳过；同学生同日期的体检记录将覆盖更新。
+    </div>
+  </div>
+</div>
+{% endblock %}

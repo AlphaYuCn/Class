@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}排座结果 - {{ sa.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-grid-3x3-gap-fill"></i> {{ sa.name }}</h2>
+    <div class="small text-muted">
+      {{ sa.rows }} 行 × {{ sa.cols }} 列 · 总评分 <b>{{ sa.score_total | round(2) if sa.score_total else '' }}</b>
+      {% if params %}· w1={{ params.w1 }} w2={{ params.w2 }} w3={{ params.w3 }} w4={{ params.w4 }}
+      {% if params.force %}· 强制同性别{% endif %}{% endif %}
+    </div>
+  </div>
+  <div class="btn-group">
+    <a href="{{ url_for('tools.seating') }}" class="btn btn-outline-secondary">← 重新排座</a>
+    <a href="{{ url_for('tools.seating_export', aid=sa.id) }}" class="btn btn-success">
+      <i class="bi bi-download"></i> 导出 Excel
+    </a>
+    <button onclick="window.print()" class="btn btn-outline-primary"><i class="bi bi-printer"></i> 打印</button>
+  </div>
+</div>
+
+{# 提示 + 拖拽说明 #}
+<div class="alert alert-info d-flex align-items-center">
+  <i class="bi bi-hand-index-thumb me-2 fs-5"></i>
+  <div>
+    <b>手动微调：</b>用鼠标按住一个座位，拖拽到另一个座位松开即可交换。
+    支持空座交换（学生 ↔ 空座相当于移动）。
+  </div>
+</div>
+
+{# 拖拽交换表单(隐藏, JS 自动填充并提交) #}
+<form id="swapForm" method="post" action="{{ url_for('tools.seating_swap', aid=sa.id) }}" style="display:none">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="r1" id="r1">
+  <input type="hidden" name="c1" id="c1">
+  <input type="hidden" name="r2" id="r2">
+  <input type="hidden" name="c2" id="c2">
+</form>
+
+<div class="card shadow-sm">
+  <div class="card-header bg-light">
+    <i class="bi bi-arrow-up"></i> 讲台
+  </div>
+  <div class="card-body">
+    <div class="seating-grid">
+      <table class="table table-bordered text-center align-middle mb-0">
+        {% for row in grid %}
+        {% set outer_r = loop.index0 %}
+        <tr>
+          {% for seat in row %}
+          {% set inner_c = loop.index0 %}
+          {% if seat and seat.student_id %}
+            {% set s = sid_to_student[seat.student_id] %}
+            <td class="seat-cell draggable-seat"
+                data-r="{{ outer_r }}" data-c="{{ inner_c }}"
+                draggable="true"
+                style="cursor: grab;">
+              <div class="fw-bold">{{ s.name }}</div>
+              <div class="small text-muted">{{ s.student_no }}</div>
+              <div class="badge {% if s.gender == 'F' %}bg-danger{% else %}bg-primary{% endif %}">{{ s.gender|gender_label }}</div>
+              {% if s.zodiac_sign %}<div class="small">{{ s.zodiac_sign }}</div>{% endif %}
+              <div class="small text-muted">第{{ inner_c+1 }}列</div>
+            </td>
+          {% elif seat %}
+            <td class="seat-cell empty-seat draggable-seat"
+                data-r="{{ outer_r }}" data-c="{{ inner_c }}"
+                draggable="true"
+                style="cursor: grab;">
+              <span class="text-muted">空座</span>
+              <div class="small text-muted">第{{ inner_c+1 }}列</div>
+            </td>
+          {% else %}
+            <td class="seat-cell empty-seat draggable-seat"
+                data-r="{{ outer_r }}" data-c="{{ inner_c }}"
+                draggable="true"
+                style="cursor: grab;">
+              <span class="text-muted">—</span>
+              <div class="small text-muted">第{{ inner_c+1 }}列</div>
+            </td>
+          {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+  <div class="card-footer small text-muted">
+    <i class="bi bi-info-circle"></i>
+    颜色说明：<span class="badge bg-primary">男</span> <span class="badge bg-danger">女</span>
+    · 排数从讲台侧起算（第 1 行靠近讲台）
+    · 拖拽任一座位到另一个座位即可交换
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  let dragSource = null;  // 拖拽起点 {r, c}
+
+  function initDrag() {
+    const seats = document.querySelectorAll('.draggable-seat');
+    seats.forEach(td => {
+      // 拖拽开始: 记录起点
+      td.addEventListener('dragstart', function (e) {
+        dragSource = {
+          r: td.dataset.r,
+          c: td.dataset.c,
+          name: td.querySelector('.fw-bold')?.textContent || '空座'
+        };
+        td.style.opacity = '0.4';
+        e.dataTransfer.effectAllowed = 'move';
+        // Firefox 需要 setData
+        try { e.dataTransfer.setData('text/plain', td.dataset.r + ',' + td.dataset.c); } catch (_) {}
+      });
+      // 拖拽结束: 恢复样式
+      td.addEventListener('dragend', function () {
+        td.style.opacity = '1';
+        // 清除所有 hover 样式
+        document.querySelectorAll('.seat-cell').forEach(c => c.classList.remove('drag-over'));
+      });
+      // 拖拽悬停: 高亮目标
+      td.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        td.classList.add('drag-over');
+      });
+      td.addEventListener('dragleave', function () {
+        td.classList.remove('drag-over');
+      });
+      // 松开: 提交交换
+      td.addEventListener('drop', function (e) {
+        e.preventDefault();
+        td.classList.remove('drag-over');
+        if (!dragSource) return;
+        const targetR = td.dataset.r;
+        const targetC = td.dataset.c;
+        // 同位置不提交
+        if (dragSource.r === targetR && dragSource.c === targetC) {
+          return;
+        }
+        const targetName = td.querySelector('.fw-bold')?.textContent || '空座';
+        if (!confirm(`确认交换?\n  (${parseInt(dragSource.r)+1}行,${parseInt(dragSource.c)+1}列) ${dragSource.name}\n  ⇄\n  (${parseInt(targetR)+1}行,${parseInt(targetC)+1}列) ${targetName}`)) {
+          return;
+        }
+        // 填充隐藏表单并提交
+        document.getElementById('r1').value = dragSource.r;
+        document.getElementById('c1').value = dragSource.c;
+        document.getElementById('r2').value = targetR;
+        document.getElementById('c2').value = targetC;
+        document.getElementById('swapForm').submit();
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initDrag);
+})();
+</script>
+<style>
+.drag-over {
+  outline: 3px dashed #ffc107;
+  outline-offset: -3px;
+  background-color: #fff8e1 !important;
+}
+.seat-cell {
+  min-width: 90px;
+  height: 110px;
+  vertical-align: middle;
+  user-select: none;
+}
+.seat-cell:active {
+  cursor: grabbing;
+}
+</style>
+{% endblock %}

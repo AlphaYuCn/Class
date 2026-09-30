@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }} 完整档案{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <h2 class="mb-0"><i class="bi bi-file-earmark-text"></i> {{ s.name }} 完整档案</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('students.profile', sid=s.id) }}" class="btn btn-outline-secondary btn-sm">← 档案</a>
+    <button onclick="window.print()" class="btn btn-primary btn-sm">
+      <i class="bi bi-printer"></i> 打印 / 另存 PDF
+    </button>
+  </div>
+</div>
+
+<div class="printable">
+  <div class="text-center mb-3">
+    <h3 class="mb-0">学生档案</h3>
+    <div class="text-muted small">打印日期: {{ now|date_cn if now else '' }}</div>
+  </div>
+
+  <h5 class="border-bottom pb-1 mb-2">一、基本信息</h5>
+  <table class="table table-bordered table-sm">
+    <tbody>
+      <tr>
+        <td class="table-light" style="width:15%">姓名</td><td style="width:35%">{{ s.name }}</td>
+        <td class="table-light" style="width:15%">学号</td><td style="width:35%">{{ s.student_no }}</td>
+      </tr>
+      <tr>
+        <td class="table-light">性别</td><td>{{ s.gender|gender_label }}</td>
+        <td class="table-light">民族</td><td>{{ s.ethnicity or '' }}</td>
+      </tr>
+      <tr>
+        <td class="table-light">出生日期</td><td>{{ s.birth_date|date_cn if s.birth_date else '' }}</td>
+        <td class="table-light">星座</td><td>{{ s.zodiac_sign or '' }}</td>
+      </tr>
+      <tr>
+        <td class="table-light">身高</td><td>{{ s.height if s.height else '' }} cm</td>
+        <td class="table-light">身份证号</td><td>{{ s.id_card or '' }}</td>
+      </tr>
+      <tr>
+        <td class="table-light">父亲</td><td>{{ s.father_name or '' }} {{ s.father_phone or '' }}</td>
+        <td class="table-light">母亲</td><td>{{ s.mother_name or '' }} {{ s.mother_phone or '' }}</td>
+      </tr>
+      <tr>
+        <td class="table-light">紧急联系人</td><td colspan="3">{{ s.emergency_contact or '' }} {{ s.emergency_phone or '' }}</td>
+      </tr>
+      {% if s.note %}
+      <tr>
+        <td class="table-light">备注</td>
+        <td colspan="3">{{ s.note|nl2br }}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <h5 class="border-bottom pb-1 mb-2 mt-4">二、历次成绩</h5>
+  {% if all_records %}
+  <table class="table table-bordered table-sm align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>考试</th><th>日期</th><th>总分</th><th>班排</th><th>年级排</th>
+        <th>语文</th><th>数学</th><th>英语</th><th>物理</th>
+        <th>化学</th><th>生物</th><th>政治</th><th>历史</th><th>地理</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in all_records | reverse %}
+      <tr>
+        <td>{{ r.exam.name }}</td>
+        <td><small>{{ r.exam.exam_date|date_cn }}</small></td>
+        <td><b>{{ r.total|score1 }}</b></td>
+        <td>{{ r.class_rank or '' }}</td>
+        <td>{{ r.grade_rank or '' }}</td>
+        <td>{{ r.chinese|score1 }}</td>
+        <td>{{ r.math|score1 }}</td>
+        <td>{{ r.english|score1 }}</td>
+        <td>{{ r.physics|score1 }}</td>
+        <td>{{ r.chemistry|score1 }}</td>
+        <td>{{ r.biology|score1 }}</td>
+        <td>{{ r.politics|score1 }}</td>
+        <td>{{ r.history|score1 }}</td>
+        <td>{{ r.geography|score1 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-muted">暂无成绩数据</p>
+  {% endif %}
+
+  <h5 class="border-bottom pb-1 mb-2 mt-4">三、日常表现汇总</h5>
+  <div class="row g-2 mb-3">
+    <div class="col-4">
+      <div class="border rounded p-2 text-center">
+        <div class="small text-muted">表扬/奖励</div>
+        <div class="h5 text-success mb-0">{{ praise_count }}</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="border rounded p-2 text-center">
+        <div class="small text-muted">违纪记录</div>
+        <div class="h5 text-danger mb-0">{{ punish_count }}</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="border rounded p-2 text-center">
+        <div class="small text-muted">总记录</div>
+        <div class="h5 mb-0">{{ daily_records|length }}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if daily_records %}
+  <table class="table table-bordered table-sm align-middle">
+    <thead class="table-light">
+      <tr><th style="width:12%">日期</th><th style="width:12%">类型</th>
+          <th style="width:8%">严重度</th><th>描述</th></tr>
+    </thead>
+    <tbody>
+      {% for r in daily_records[:30] %}
+      <tr>
+        <td><small>{{ r.occurred_at|date_cn }}</small></td>
+        <td>
+          {% if r.is_praise() %}<span class="text-success">{{ r.type_label() }}</span>
+          {% else %}<span class="text-danger">{{ r.type_label() }}</span>{% endif %}
+        </td>
+        <td>{{ r.severity or 0 }}</td>
+        <td>{{ r.description or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if daily_records|length > 30 %}
+  <p class="text-muted small">仅显示最近 30 条, 共 {{ daily_records|length }} 条记录</p>
+  {% endif %}
+  {% else %}
+  <p class="text-muted">暂无日常记录</p>
+  {% endif %}
+
+  {% if latest_comment %}
+  <h5 class="border-bottom pb-1 mb-2 mt-4">四、学期评语</h5>
+  <div class="border rounded p-3 bg-light">
+    <div class="text-muted small mb-1">{{ latest_comment.term }}
+      {% if latest_comment.is_draft %}<span class="badge bg-warning">草稿</span>
+      {% else %}<span class="badge bg-success">定稿</span>{% endif %}
+    </div>
+    <p class="mb-0">{{ latest_comment.content|nl2br }}</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+@media print {
+  .no-print { display: none !important; }
+  .navbar, footer { display: none !important; }
+  body { font-size: 11pt; }
+  .printable { padding: 0; }
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}值日检查清单{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-list-check"></i> 值日检查清单模板</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('tools.duty_check') }}" class="btn btn-outline-success">
+      <i class="bi bi-clipboard-check"></i> 录入检查
+    </a>
+    <a href="{{ url_for('tools.duty_check_list') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-clock-history"></i> 检查记录
+    </a>
+    <a href="{{ url_for('tools.duty') }}" class="btn btn-link">← 值日</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-plus-circle"></i> 新建检查清单</div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">清单名称 <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" placeholder="如：晚自习检查、卫生检查" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">检查项 <span class="text-danger">*</span></label>
+            <textarea name="items" rows="8" class="form-control" placeholder="每行一个检查项，如：
+地面卫生
+黑板清洁
+桌椅整齐
+灯具开关" required></textarea>
+            <div class="form-text">每行一个检查项</div>
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 保存清单</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-list-ul"></i> 检查清单 ({{ parsed|length }})</div>
+      <div class="card-body">
+        {% if parsed %}
+          {% for item in parsed %}
+          <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-card-checklist"></i> <b>{{ item.template.name }}</b>
+                <span class="badge bg-secondary">{{ item.items|length }} 项</span>
+              </span>
+              <div class="btn-group">
+                <a href="{{ url_for('tools.duty_check', tid=item.template.id) }}" class="btn btn-sm btn-outline-success">
+                  <i class="bi bi-clipboard-check"></i> 用此清单录入
+                </a>
+                <form method="post" action="{{ url_for('tools.duty_checklist_delete', tid=item.template.id) }}" onsubmit="return confirm('确认删除此清单？');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </div>
+            <div class="card-body">
+              <ol class="mb-0">
+                {% for i in item.items %}<li>{{ i }}</li>{% endfor %}
+              </ol>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-card-checklist" style="font-size:3rem;"></i>
+            <p class="mt-2">暂无检查清单</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

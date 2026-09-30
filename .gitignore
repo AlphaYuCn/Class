@@ -1,0 +1,24 @@
+# 数据库与上传文件(不入库)
+instance/
+*.db
+*.sqlite
+uploads/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# TRAE 编辑器
+.trae/
+
+# 打包产物
+*.zip
+banzhuren_portable/

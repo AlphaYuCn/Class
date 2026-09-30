@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}新建家长会{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-plus-circle"></i> 新建家长会</h2>
+  <a href="{{ url_for('tools.meeting_list') }}" class="btn btn-link">← 返回列表</a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">主题 <span class="text-danger">*</span></label>
+          <input type="text" name="title" class="form-control" placeholder="如：期中考试成绩通报会、新学期家长会" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">召开日期</label>
+          <input type="date" name="held_at" value="{{ today }}" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">学期</label>
+          <input type="text" name="term" value="{{ default_term }}" class="form-control">
+        </div>
+        <div class="col-12">
+          <label class="form-label">议程</label>
+          <textarea name="agenda" rows="4" class="form-control" placeholder="分点描述，如：
+1. 班主任致辞
+2. 期中成绩通报
+3. 各科任老师发言
+4. 家长提问与交流"></textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label">家长通知</label>
+          <textarea name="notice" rows="3" class="form-control" placeholder="可粘贴通知正文，便于发到班级群"></textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label">会议总结</label>
+          <textarea name="summary" rows="3" class="form-control" placeholder="会议结束后填写"></textarea>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-save"></i> 保存</button>
+      <a href="{{ url_for('tools.meeting_list') }}" class="btn btn-link mt-3">取消</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+# Render 一键部署配置
+# 将此文件推送到 GitHub 后, 在 Render 控制台选择 "Blueprint" 即可一键创建 Web + 数据库
+services:
+  - type: web
+    name: banzhuren
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: banzhuren-db
+          property: connectionString
+
+databases:
+  - name: banzhuren-db
+    plan: free
+    databaseName: banzhuren
+    user: banzhuren

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}检查记录详情{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-clipboard-data"></i> 检查记录详情</h2>
+  <a href="{{ url_for('tools.duty_check_list') }}" class="btn btn-link">← 历史记录</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <table class="table table-borderless mb-0">
+      <tr><td class="text-muted" style="width:120px;">检查日期</td><td>{{ rec.check_date|date_cn }}</td></tr>
+      <tr><td class="text-muted">值日组</td><td>{{ rec.group.name if rec.group else '—' }}</td></tr>
+      <tr><td class="text-muted">清单</td><td>{{ rec.template.name if rec.template else '—' }}</td></tr>
+      <tr><td class="text-muted">总分</td><td><span class="badge bg-primary">{{ rec.total_score }}</span></td></tr>
+      {% if rec.note %}<tr><td class="text-muted">备注</td><td>{{ rec.note }}</td></tr>{% endif %}
+    </table>
+  </div>
+</div>
+
+{% if items %}
+<div class="card shadow-sm">
+  <div class="card-header"><i class="bi bi-list-check"></i> 各项得分</div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light"><tr><th>#</th><th>检查项</th><th>得分</th></tr></thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ it.name }}</td>
+          <td>
+            {% if it.score is not none %}
+              <span class="badge {% if it.score >= 80 %}bg-success{% elif it.score >= 60 %}bg-warning{% else %}bg-danger{% endif %}">{{ it.score }}</span>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}目标成绩管理{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-bullseye"></i> 目标成绩管理</h2>
+    <div class="text-muted small">学期：{{ term }}</div>
+  </div>
+  <form class="d-flex gap-2" method="get">
+    <input type="text" name="term" class="form-control form-control-sm" value="{{ term }}" placeholder="如 2026秋季">
+    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-funnel"></i> 切换学期</button>
+    <a href="{{ url_for('scores.index') }}" class="btn btn-sm btn-link">← 成绩分析</a>
+  </form>
+</div>
+
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  为每位学生设定本学期的目标成绩（各科+总分+班级排名目标），系统将与实际考试成绩对比，可视化达成情况。
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>学生目标一览（{{ students|length }} 人）</span>
+    <span class="text-muted small">已设定：{{ goals|length }} 人</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>学号</th><th>姓名</th>
+            <th>总分目标</th><th>班排目标</th>
+            <th>科目数</th><th>说明</th>
+            <th class="text-end">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          {% set g = goals.get(s.id) %}
+          <tr>
+            <td><small class="text-muted">{{ s.student_no }}</small></td>
+            <td><b>{{ s.name }}</b></td>
+            <td>
+              {% if g and g.total is not none %}
+                <span class="badge bg-primary">{{ g.total|score1 }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if g and g.class_rank_target %}
+                <span class="badge bg-info">前{{ g.class_rank_target }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if g %}
+                {% set cnt = g.subject_targets()|length %}
+                <span class="badge bg-secondary">{{ cnt }}/9</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td><small class="text-muted">{{ g.note if g and g.note else '' }}</small></td>
+            <td class="text-end">
+              <a href="{{ url_for('scores.goal_edit', sid=s.id, term=term) }}"
+                 class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-pencil"></i> 设定
+              </a>
+              {% if g %}
+              <a href="{{ url_for('scores.goal_compare', sid=s.id, term=term) }}"
+                 class="btn btn-sm btn-outline-success">
+                <i class="bi bi-bar-chart"></i> 对比
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

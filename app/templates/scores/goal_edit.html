@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }} 目标成绩{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-bullseye"></i> {{ s.name }} 目标成绩</h2>
+    <div class="text-muted small">{{ s.student_no }} · 学期：{{ term }}</div>
+  </div>
+  <a href="{{ url_for('scores.goal_list', term=term) }}" class="btn btn-link">← 目标列表</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-pencil-square"></i> 设定目标</div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label">学期</label>
+              <input type="text" name="term" class="form-control" value="{{ term }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">总分目标</label>
+              <input type="number" step="0.1" name="total" class="form-control"
+                     value="{{ g.total if g and g.total is not none else '' }}" placeholder="如 600">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">班级排名目标</label>
+              <input type="number" step="1" name="class_rank_target" class="form-control"
+                     value="{{ g.class_rank_target if g and g.class_rank_target else '' }}" placeholder="如 前10">
+            </div>
+          </div>
+
+          <h6 class="mt-3 mb-2"><i class="bi bi-list-ol"></i> 各科目标</h6>
+          <div class="row g-2">
+            {% for sd in subject_data %}
+            <div class="col-md-4">
+              <label class="form-label small">{{ sd.label }}
+                <small class="text-muted">/ {{ sd.full }}</small>
+              </label>
+              <input type="number" step="0.1" name="{{ sd.key }}" class="form-control form-control-sm"
+                     value="{{ sd.target if sd.target is not none else '' }}"
+                     placeholder="{{ sd.label }}目标">
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="mt-3">
+            <label class="form-label">目标说明</label>
+            <textarea name="note" class="form-control" rows="2"
+                      placeholder="如：冲进年级前50名；物理需加强">{{ g.note if g and g.note else '' }}</textarea>
+          </div>
+
+          <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 保存目标</button>
+            {% if g %}
+            <a href="{{ url_for('scores.goal_compare', sid=s.id, term=term) }}"
+               class="btn btn-outline-success"><i class="bi bi-bar-chart"></i> 查看对比</a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-clock-history"></i> 最近成绩参考</div>
+      <div class="card-body">
+        {% if latest %}
+        <p class="mb-2">最近一次：<b>{{ latest.exam.name }}</b>
+          <small class="text-muted">{{ latest.exam.exam_date|date_cn }}</small>
+        </p>
+        <table class="table table-sm table-borderless">
+          <tr><td>总分</td><td><b>{{ latest.total|score1 }}</b></td></tr>
+          <tr><td>班级排名</td><td><b>{{ latest.class_rank or '—' }}</b></td></tr>
+        </table>
+        <h6 class="mt-3">各科</h6>
+        <ul class="list-unstyled small">
+          {% for sd in subject_data %}
+          {% if sd.actual is not none %}
+          <li>{{ sd.label }}: <b>{{ sd.actual|score1 }}</b> / {{ sd.full }}</li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+        <a href="{{ url_for('scores.detail', eid=latest.exam_id, sid=s.id) }}"
+           class="btn btn-sm btn-outline-secondary mt-2">查看详细 →</a>
+        {% else %}
+        <div class="text-center text-muted py-4">暂无历史成绩</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

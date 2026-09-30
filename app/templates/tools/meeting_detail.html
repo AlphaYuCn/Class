@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ m.title }} - 家长会详情{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-people-fill"></i> {{ m.title }}</h2>
+  <a href="{{ url_for('tools.meeting_list') }}" class="btn btn-link">← 返回列表</a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card text-white bg-info shadow-sm"><div class="card-body">
+      <div class="small">召开日期</div><div class="h5">{{ m.held_at|date_cn }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-success shadow-sm"><div class="card-body">
+      <div class="small">已签到</div><div class="h5">{{ signed }} 人</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm"><div class="card-body">
+      <div class="small text-muted">全班人数</div><div class="h5">{{ total_students }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white {% if rate >= 90 %}bg-success{% elif rate >= 60 %}bg-warning{% else %}bg-danger{% endif %} shadow-sm"><div class="card-body">
+      <div class="small">签到率</div><div class="h5">{{ rate }}%</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white"><i class="bi bi-person-plus"></i> 添加家长签到</div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <label class="form-label">学生</label>
+            <select name="student_id" class="form-select" required>
+              <option value="">— 选择学生 —</option>
+              {% for s in students %}
+                <option value="{{ s.id }}">{{ s.name }} ({{ s.student_no }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">家长姓名</label>
+            <input type="text" name="parent_name" class="form-control" placeholder="到会家长姓名">
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle"></i> 签到</button>
+        </form>
+      </div>
+    </div>
+
+    {% if m.agenda %}
+    <div class="card shadow-sm mt-3">
+      <div class="card-header"><i class="bi bi-list-task"></i> 议程</div>
+      <div class="card-body"><pre class="mb-0" style="white-space:pre-wrap;">{{ m.agenda }}</pre></div>
+    </div>
+    {% endif %}
+    {% if m.notice %}
+    <div class="card shadow-sm mt-3">
+      <div class="card-header"><i class="bi bi-megaphone"></i> 通知</div>
+      <div class="card-body"><pre class="mb-0" style="white-space:pre-wrap;">{{ m.notice }}</pre></div>
+    </div>
+    {% endif %}
+    {% if m.summary %}
+    <div class="card shadow-sm mt-3">
+      <div class="card-header bg-warning"><i class="bi bi-journal-text"></i> 总结</div>
+      <div class="card-body"><pre class="mb-0" style="white-space:pre-wrap;">{{ m.summary }}</pre></div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header"><i class="bi bi-list-check"></i> 签到名单 ({{ attendees|length }})</div>
+      <div class="card-body p-0">
+        {% if attendees %}
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle">
+              <thead class="table-light">
+                <tr><th>学号</th><th>学生</th><th>家长</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                {% for a in attendees %}
+                <tr>
+                  <td>{{ a.student.student_no }}</td>
+                  <td><a href="{{ url_for('students.profile', sid=a.student_id) }}">{{ a.student.name }}</a></td>
+                  <td>{{ a.parent_name or '—' }}</td>
+                  <td>
+                    <form method="post" action="{{ url_for('tools.meeting_attendee_delete', mid=m.id, aid=a.id) }}" class="d-inline" onsubmit="return confirm('确认删除此签到记录？');">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-clipboard-check" style="font-size:3rem;"></i>
+            <p class="mt-2">暂无签到，从左侧添加</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

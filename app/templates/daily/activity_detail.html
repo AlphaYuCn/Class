@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ a.title }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-calendar-event"></i> {{ a.title }}</h2>
+  <div class="btn-group">
+    <a href="{{ url_for('daily.activity_list') }}" class="btn btn-link">← 返回列表</a>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <table class="table table-borderless mb-0">
+      <tr><td class="text-muted" style="width:120px;">类型</td>
+          <td><span class="badge {% if a.activity_type == 'meeting' %}bg-primary{% else %}bg-info{% endif %}">{{ a.type_label() }}</span></td></tr>
+      <tr><td class="text-muted">日期</td><td>{{ a.held_at|date_cn }}</td></tr>
+      <tr><td class="text-muted">学期</td><td>{{ a.term or '—' }}</td></tr>
+      <tr><td class="text-muted">参与人</td><td>{{ a.participants or '—' }}</td></tr>
+    </table>
+  </div>
+</div>
+
+{% if a.agenda %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header"><i class="bi bi-list-task"></i> 流程/议程</div>
+  <div class="card-body">
+    <pre class="mb-0" style="white-space:pre-wrap;">{{ a.agenda }}</pre>
+  </div>
+</div>
+{% endif %}
+
+{% if a.summary %}
+<div class="card shadow-sm">
+  <div class="card-header"><i class="bi bi-journal-text"></i> 总结</div>
+  <div class="card-body">
+    <pre class="mb-0" style="white-space:pre-wrap;">{{ a.summary }}</pre>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }} 评语{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-chat-square-text"></i> {{ s.name }} 学生评语</h2>
+    <div class="text-muted small">
+      <a href="{{ url_for('daily.student_page', sid=s.id) }}">← 日常管理</a>
+      · <a href="{{ url_for('students.profile', sid=s.id) }}">学生档案</a>
+      · 当前学期: <b>{{ term }}</b>
+      {% if not is_draft %}<span class="badge bg-success ms-2">已定稿</span>
+      {% else %}<span class="badge bg-warning ms-2">草稿</span>{% endif %}
+    </div>
+  </div>
+  <div>
+    <a href="{{ url_for('daily.comment', sid=s.id, term=default_term) }}"
+       class="btn btn-sm btn-outline-secondary">本学期</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-9">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <span>评语正文</span>
+        <form method="post" action="{{ url_for('daily.comment_generate', sid=s.id) }}"
+              class="d-inline"
+              onsubmit="return confirm('重新生成会覆盖当前评语内容, 继续?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="term" value="{{ term }}">
+          <button class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-magic"></i> 自动生成初稿
+          </button>
+        </form>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('daily.comment', sid=s.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="term" value="{{ term }}">
+          <div class="mb-3">
+            <textarea name="content" rows="14" class="form-control"
+                      placeholder="点击右上'自动生成初稿'可基于学生成绩和日常记录生成初稿, 也可直接编辑">{{ content }}</textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" name="action" value="save" class="btn btn-outline-secondary">
+              <i class="bi bi-save"></i> 保存为草稿
+            </button>
+            <button type="submit" name="action" value="finalize"
+                    class="btn btn-success"
+                    onclick="return confirm('定稿后将锁定, 如需修改请重新保存为草稿。继续?')">
+              <i class="bi bi-check-circle"></i> 定稿
+            </button>
+            <button type="button" class="btn btn-outline-primary ms-auto"
+                    onclick="window.print()">
+              <i class="bi bi-printer"></i> 打印
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light"><i class="bi bi-clock-history"></i> 历史评语</div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for h in history %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{{ url_for('daily.comment', sid=s.id, term=h.term) }}">
+              <b>{{ h.term }}</b>
+            </a>
+            {% if h.is_draft %}
+            <span class="badge bg-warning">草稿</span>
+            {% else %}
+            <span class="badge bg-success">定稿</span>
+            {% endif %}
+          </li>
+          {% else %}
+          <li class="list-group-item text-muted small">尚无历史评语</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="card shadow-sm mt-3">
+      <div class="card-header bg-light"><i class="bi bi-info-circle"></i> 生成规则</div>
+      <div class="card-body small text-muted">
+        <p class="mb-1">自动初稿基于:</p>
+        <ul class="small mb-0">
+          <li>最近一次班排 + 与上次排名对比</li>
+          <li>排名分档(前茅/中上/中等/落后)</li>
+          <li>优势/薄弱科目诊断</li>
+          <li>日常表扬/违纪次数平衡</li>
+          <li>统一鼓励结尾</li>
+        </ul>
+        <hr>
+        <p class="mb-0">建议班主任审阅后修改, 避免完全使用模板。</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
